@@ -10,34 +10,29 @@ var databaseUri = process.env.DATABASE_URI || process.env.MONGODB_URI;
 if (!databaseUri) {
   console.log('DATABASE_URI not specified, falling back to localhost.');
 }
-var devCertPath = path.resolve(__dirname, './certificate/dagensvimmerby-dev-non.p12');
-console.log(devCertPath);
-var proCertPath = path.resolve(__dirname, './certificate/dagensvimmerby-pro-non.p12');
-console.log(proCertPath);
+var pushKeyPath = path.resolve(__dirname, './certificate/AuthKey-<keyID>.p8')
+console.log(pushKeyPath)
 var pushConfig = { 
     android: {
         senderId: '',
         apiKey: ''
     },
-    ios: [
-      {
-        pfx: devCertPath, // P12 file only
-        bundleId: '',
-        production: false
+    ios: {
+      token: {
+        key: pushKeyPath,
+        keyId: "",
+        teamId: "" // The Team ID for your developer account
       },
-      {
-        pfx: proCertPath, // P12 file only
-        bundleId: '',
-        production: true
-      }
-    ]
+      topic: '', // The bundle identifier associated with your app
+      production: true
+    }
   };
 var api = new ParseServer({
-  databaseURI: databaseUri || '',
-  cloud: process.env.CLOUD_CODE_MAIN || __dirname + '',
-  appId: process.env.APP_ID || '',
-  masterKey: process.env.MASTER_KEY || '', //Add your master key here. Keep it secret!
-  serverURL: process.env.SERVER_URL || '',  // Don't forget to change to https if needed
+  databaseURI: databaseUri || '<MongodbConnectionString>',
+  cloud: process.env.CLOUD_CODE_MAIN || __dirname + '/cloud/main.js',
+  appId: process.env.APP_ID || 'id-<ParseAppID>',
+  masterKey: process.env.MASTER_KEY || 'key-<ParseMasterKey>', //Add your master key here. Keep it secret!
+  serverURL: process.env.SERVER_URL || 'http://<heroku-AppName>.herokuapp.com/parse',  // Don't forget to change to https if needed
   push: pushConfig,
   liveQuery: {
     classNames: ["Posts", "Comments"] // List of classes to support for query subscriptions
@@ -60,7 +55,7 @@ app.use(mountPath, api);
 
 // Parse Server plays nicely with the rest of your web routes
 app.get('/', function(req, res) {
-  res.status(200).send('Dagens Vimmerby parse-server deployed successfully');
+  res.status(200).send('<AppName> parse-server deployed successfully');
 });
 
 // There will be a test page available on the /test path of your server url

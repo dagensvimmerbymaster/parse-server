@@ -8,7 +8,7 @@ Parse.Cloud.define("hello", function(request, response) {
 
 Parse.Cloud.define("UpdateInstallation", function(request, response) {
 	// Set up to modify user data
-    Parse.Cloud.useMasterKey();
+    //Parse.Cloud.useMasterKey();
     var query = new Parse.Query(Parse.Installation);
     query.equalTo("installationId", request.params.installationId);
     query.first({
@@ -22,7 +22,8 @@ Parse.Cloud.define("UpdateInstallation", function(request, response) {
                 installation.set("appIdentifier", request.params.appIdentifier);
                 installation.set("parseVersion", request.params.parseVersion);
                 installation.set("deviceToken", request.params.deviceToken);
-                installation.set("pushType", request.params.pushType);
+                //installation.set("pushType", request.params.pushType);
+                installation.set("pushType", "gcm");
                 installation.set("timeZone", request.params.timeZone);
                 installation.set("localeIdentifier", request.params.localeIdentifier);
                 installation.set("appVersion", request.params.appVersion);
@@ -32,7 +33,7 @@ Parse.Cloud.define("UpdateInstallation", function(request, response) {
                         response.success('Successfully updated installation table.');
                     }, error: function(installation, error) {
                         response.error("Could not save changes to installation.");
-                    }
+                    }, useMasterKey: true,
                 });
             } else {
                 createNewInstallation(request, { 
@@ -45,12 +46,12 @@ Parse.Cloud.define("UpdateInstallation", function(request, response) {
             }
         }, error: function(error) {
             response.error('query error');
-        }
+        }, useMasterKey: true,
     });
 });
 
 var createNewInstallation = function(request, response) {
-    Parse.Cloud.useMasterKey();
+    //Parse.Cloud.useMasterKey();
     var installation = new Parse.Installation();
     installation.set("GCMSenderId", request.params.GCMSenderId);
     installation.set("installationId", request.params.installationId);
@@ -59,7 +60,8 @@ var createNewInstallation = function(request, response) {
     installation.set("appIdentifier", request.params.appIdentifier);
     installation.set("parseVersion", request.params.parseVersion);
     installation.set("deviceToken", request.params.deviceToken);
-    installation.set("pushType", request.params.pushType);
+    //installation.set("pushType", request.params.pushType);
+    installation.set("pushType", "gcm");
     installation.set("timeZone", request.params.timeZone);
     installation.set("localeIdentifier", request.params.localeIdentifier);
     installation.set("appVersion", request.params.appVersion);
@@ -69,6 +71,6 @@ var createNewInstallation = function(request, response) {
             response.success(installation);
         }, error: function(installation, error) {
             response.error(installation, error);
-        }
+        }, useMasterKey: true,
     });
 }
