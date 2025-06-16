@@ -2,7 +2,6 @@
 
 const express = require('express');
 const http = require('http');
-const fs = require('fs');
 const { ParseServer } = require('parse-server');
 const path = require('path');
 
@@ -15,10 +14,6 @@ if (!databaseUri) {
   console.warn('⚠️ DATABASE_URI not specified, falling back to localhost.');
 }
 
-// iOS Push-certifikat
-const pushKeyPath = path.resolve(__dirname, './certificate/AuthKey-AT4486F4YN.p8');
-console.log('🔐 Push key path:', pushKeyPath);
-
 // Android push-konfiguration
 const androidPushConfigs = {
   'id-FAoIJ78ValGFwYdBWfxch7Fm': {
@@ -29,12 +24,12 @@ const androidPushConfigs = {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
-// Kombinerad push-konfiguration
+// Push-konfiguration utan fil – med miljövariabel
 const pushConfig = {
   android: androidPushConfigs[appId],
   ios: [
     {
-      p8: fs.readFileSync(pushKeyPath).toString(),
+      p8: process.env.APNS_P8_KEY,
       keyId: 'AT4486F4YN',
       teamId: '5S4Z656PBW',
       bundleId: 'com.dagensvimmerbyab.DH',
@@ -77,4 +72,3 @@ httpServer.listen(port, () => {
 });
 
 ParseServer.createLiveQueryServer(httpServer);
-
