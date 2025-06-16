@@ -18,7 +18,7 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
 // 🔐 iOS push key path
-const pushKeyPath = '/certificates/AuthKey_AT4486F4YN.p8 (kopia)';
+const pushKeyPath = '/certificates/AuthKey_AT4486F4YN.p8';
 console.log('🔐 Push key path:', pushKeyPath);
 
 // 📦 Android push config
