@@ -1,10 +1,11 @@
-// index.js – För Parse Server v6+ med korrekt initiering
+// index.js – För Parse Server v6+ med korrekt push-adapter v3+ stöd
 
 const express = require('express');
 const http = require('http');
 const { ParseServer } = require('parse-server');
 const path = require('path');
 const fs = require('fs');
+const PushAdapter = require('@parse/push-adapter').default;
 
 const app = express();
 const port = process.env.PORT || 1337;
@@ -31,8 +32,8 @@ const androidPushConfigs = {
   }
 };
 
-// ✅ Kombinerad push-konfiguration
-const pushConfig = {
+// ✅ PushAdapter-instans enligt v3-format
+const pushAdapter = new PushAdapter({
   android: androidPushConfigs[appId],
   ios: [
     {
@@ -44,7 +45,7 @@ const pushConfig = {
       type: 'p8'
     }
   ]
-};
+});
 
 // ✅ URL-konfigurationer
 const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
@@ -59,7 +60,7 @@ const parseServer = new ParseServer({
   masterKey: process.env.MASTER_KEY,
   serverURL,
   publicServerURL,
-  push: pushConfig,
+  push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
   }
