@@ -1,21 +1,24 @@
-// index.js – Uppgraderad för Parse Server v6.4.0 med dynamisk push config
+// index.js – Parse Server v6.4.0 med dynamisk push config
 
 const express = require('express');
 const http = require('http');
 const { ParseServer } = require('parse-server');
 const path = require('path');
 
-// Hämta databas-URL från miljövariabler
+// Miljövariabler
+const port = process.env.PORT || 1337;
+const mountPath = process.env.PARSE_MOUNT || '/parse';
 const databaseUri = process.env.DATABASE_URI || process.env.MONGODB_URI;
+
 if (!databaseUri) {
-  console.log('⚠️ DATABASE_URI not specified, falling back to localhost.');
+  console.warn('⚠️ DATABASE_URI not specified, falling back to localhost.');
 }
 
-// Push key path för ev. iOS
+// Push key path (för iOS, ej använd nu men förberett)
 const pushKeyPath = path.resolve(__dirname, './certificate/AuthKey-<keyID>.p8');
-console.log('Push key path:', pushKeyPath);
+console.log('🔐 Push key path:', pushKeyPath);
 
-// Push-konfiguration för Android (enligt appId)
+// Dynamisk Android push config per appId
 const androidPushConfigs = {
   'id-FAoIJ78ValGFwYdBWfxch7Fm': {
     senderId: '9966393092',
@@ -35,53 +38,45 @@ const androidPushConfigs = {
   }
 };
 
-// App ID från miljö eller fallback
+// App ID och push config
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
-
-// Push-config (endast Android just nu)
 const pushConfig = androidPushConfigs[appId]
   ? { android: androidPushConfigs[appId] }
   : undefined;
 
-// Skapa Parse Server-instansen
+// ParseServer-instans
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
   masterKey: process.env.MASTER_KEY || 'key-<ParseMasterKey>',
-  serverURL: `http://localhost:${port}${mountPath}`,
-  publicServerURL: process.env.PUBLIC_SERVER_URL || 'https://dagensvimmerby.herokuapp.com/parse',
+  serverURL: process.env.SERVER_URL || `http://localhost:${port}${mountPath}`,
+  publicServerURL: process.env.PUBLIC_SERVER_URL || `http://localhost:${port}${mountPath}`,
   push: pushConfig,
   liveQuery: {
     classNames: ['Posts', 'Comments']
   }
 });
 
-// Initiera Express
+// Express-app
 const app = express();
-
-// Servera statiskt innehåll
 app.use('/public', express.static(path.join(__dirname, '/public')));
-
-// Mounta Parse API korrekt
-const mountPath = process.env.PARSE_MOUNT || '/parse';
-app.use(mountPath, parseServer.app); // 💡 Rätt metod för ParseServer v6.x
+app.use(mountPath, parseServer.app);
 
 // Test-rutter
 app.get('/', (req, res) => {
-  res.status(200).send('<AppName> parse-server deployed successfully');
+  res.status(200).send('✅ Parse Server deployed successfully.');
 });
 
 app.get('/test', (req, res) => {
   res.sendFile(path.join(__dirname, '/public/test.html'));
 });
 
-// Starta servern
-const port = process.env.PORT || 1337;
+// Starta HTTP-server
 const httpServer = http.createServer(app);
 httpServer.listen(port, () => {
-  console.log(`✅ Parse Server is running on port ${port}`);
+  console.log(`🚀 Server running at http://localhost:${port}${mountPath}`);
 });
 
-// Aktivera Live Query-server
+// Aktivera Live Query
 ParseServer.createLiveQueryServer(httpServer);
