@@ -49,7 +49,7 @@ const parseServer = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
   masterKey: process.env.MASTER_KEY || 'key-<ParseMasterKey>',
-  serverURL: process.env.SERVER_URL || 'http://<heroku-app>.herokuapp.com/parse',
+  serverURL: `http://localhost:${port}${mountPath}`,
   publicServerURL: process.env.PUBLIC_SERVER_URL || 'http://<heroku-app>.herokuapp.com/parse',
   push: pushConfig,
   liveQuery: {
