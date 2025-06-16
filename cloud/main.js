@@ -1,76 +1,48 @@
-// Use Parse.Cloud.define to define as many cloud functions as you want.
-// For example:
-Parse.Cloud.define("hello", function(request, response) {
-	//this is a comment just to deploy test
-	//just another comment to deploy
-	response.success("Hello world!");
+// Modern Cloud Code for Parse Server v6+
+
+Parse.Cloud.define("hello", async (request) => {
+  return "Hello world!";
 });
 
-Parse.Cloud.define("UpdateInstallation", function(request, response) {
-	// Set up to modify user data
-    //Parse.Cloud.useMasterKey();
-    var query = new Parse.Query(Parse.Installation);
-    query.equalTo("installationId", request.params.installationId);
-    query.first({
-        success: function(installation) {
-            if  (installation) {
-                // The object was found, update it.
-                installation.set("GCMSenderId", request.params.GCMSenderId);
-                installation.set("installationId", request.params.installationId);
-                installation.set("deviceType", request.params.deviceType);
-                installation.set("appName", request.params.appName);
-                installation.set("appIdentifier", request.params.appIdentifier);
-                installation.set("parseVersion", request.params.parseVersion);
-                installation.set("deviceToken", request.params.deviceToken);
-                //installation.set("pushType", request.params.pushType);
-                installation.set("pushType", "gcm");
-                installation.set("timeZone", request.params.timeZone);
-                installation.set("localeIdentifier", request.params.localeIdentifier);
-                installation.set("appVersion", request.params.appVersion);
+Parse.Cloud.define("UpdateInstallation", async (request) => {
+  const {
+    installationId,
+    GCMSenderId,
+    deviceType,
+    appName,
+    appIdentifier,
+    parseVersion,
+    deviceToken,
+    timeZone,
+    localeIdentifier,
+    appVersion
+  } = request.params;
 
-                installation.save(null, {
-                    success: function(installation) {
-                        response.success('Successfully updated installation table.');
-                    }, error: function(installation, error) {
-                        response.error("Could not save changes to installation.");
-                    }, useMasterKey: true,
-                });
-            } else {
-                createNewInstallation(request, { 
-                    success: function(installation) {
-                        response.success('Successfully updated installation table.');
-                    }, error: function(installation, error) {
-                        response.error("Could not save changes to installation.");
-                    }
-                });
-            }
-        }, error: function(error) {
-            response.error('query error');
-        }, useMasterKey: true,
-    });
-});
+  const query = new Parse.Query(Parse.Installation);
+  query.equalTo("installationId", installationId);
 
-var createNewInstallation = function(request, response) {
-    //Parse.Cloud.useMasterKey();
-    var installation = new Parse.Installation();
-    installation.set("GCMSenderId", request.params.GCMSenderId);
-    installation.set("installationId", request.params.installationId);
-    installation.set("deviceType", request.params.deviceType);
-    installation.set("appName", request.params.appName);
-    installation.set("appIdentifier", request.params.appIdentifier);
-    installation.set("parseVersion", request.params.parseVersion);
-    installation.set("deviceToken", request.params.deviceToken);
-    //installation.set("pushType", request.params.pushType);
+  try {
+    let installation = await query.first({ useMasterKey: true });
+
+    if (!installation) {
+      installation = new Parse.Installation();
+    }
+
+    installation.set("GCMSenderId", GCMSenderId);
+    installation.set("installationId", installationId);
+    installation.set("deviceType", deviceType);
+    installation.set("appName", appName);
+    installation.set("appIdentifier", appIdentifier);
+    installation.set("parseVersion", parseVersion);
+    installation.set("deviceToken", deviceToken);
     installation.set("pushType", "gcm");
-    installation.set("timeZone", request.params.timeZone);
-    installation.set("localeIdentifier", request.params.localeIdentifier);
-    installation.set("appVersion", request.params.appVersion);
-	
-    installation.save(null, {
-        success: function(installation) {
-            response.success(installation);
-        }, error: function(installation, error) {
-            response.error(installation, error);
-        }, useMasterKey: true,
-    });
-}
+    installation.set("timeZone", timeZone);
+    installation.set("localeIdentifier", localeIdentifier);
+    installation.set("appVersion", appVersion);
+
+    await installation.save(null, { useMasterKey: true });
+    return "Successfully updated installation table.";
+  } catch (error) {
+    throw new Error("Failed to update installation: " + error.message);
+  }
+});
