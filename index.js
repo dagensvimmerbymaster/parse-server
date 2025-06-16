@@ -42,7 +42,7 @@ const pushConfig = androidPushConfigs[appId]
   : undefined;
 
 // Skapa Parse Server-instansen
-const parseServer = new ParseServer({
+const parseServer = ParseServer.start({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
@@ -61,9 +61,9 @@ const app = express();
 // Servera statiskt innehåll
 app.use('/public', express.static(path.join(__dirname, '/public')));
 
-// Mounta Parse API direkt – korrekt sätt
+// Mounta Parse API korrekt
 const mountPath = process.env.PARSE_MOUNT || '/parse';
-app.use(mountPath, parseServer);
+app.use(mountPath, parseServer.app); // ✅ rätt här
 
 // Test-rutter
 app.get('/', (req, res) => {
