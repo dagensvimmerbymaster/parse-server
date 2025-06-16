@@ -38,7 +38,7 @@ const pushAdapter = new PushAdapter({
       p8: fs.readFileSync(pushKeyPath),
       keyId: 'AT4486F4YN',
       teamId: '5S4Z656PBW',
-      topic: 'com.dagensvimmerbyab.DV',
+      bundleId: 'com.dagensvimmerbyab.DV',
       production: true,
       type: 'p8'
     }
