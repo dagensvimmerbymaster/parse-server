@@ -18,14 +18,15 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     appVersion
   } = request.params;
 
-  const query = new Parse.Query(Parse.Installation);
+  const Installation = Parse.Object.extend("_Installation"); // ✅ Korrekt klass
+  const query = new Parse.Query(Installation);
   query.equalTo("installationId", installationId);
 
   try {
     let installation = await query.first({ useMasterKey: true });
 
     if (!installation) {
-      installation = new Parse.Installation();
+      installation = new Installation(); // ✅ Korrekt skapande
     }
 
     installation.set("GCMSenderId", GCMSenderId);
