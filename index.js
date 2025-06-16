@@ -50,7 +50,7 @@ const parseServer = new ParseServer({
   appId,
   masterKey: process.env.MASTER_KEY || 'key-<ParseMasterKey>',
   serverURL: `http://localhost:${port}${mountPath}`,
-  publicServerURL: process.env.PUBLIC_SERVER_URL || 'http://<heroku-app>.herokuapp.com/parse',
+  publicServerURL: process.env.PUBLIC_SERVER_URL || 'https://dagensvimmerby.herokuapp.com/parse',
   push: pushConfig,
   liveQuery: {
     classNames: ['Posts', 'Comments']
