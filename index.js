@@ -32,7 +32,7 @@ const pushConfig = {
       p8: process.env.APNS_P8_KEY,
       keyId: 'AT4486F4YN',
       teamId: '5S4Z656PBW',
-      bundleId: 'com.dagensvimmerbyab.DH',
+      bundleId: 'com.dagensvimmerbyab.DV',
       production: true
     }
   ]
