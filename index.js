@@ -39,7 +39,7 @@ const pushConfig = {
       p8: fs.readFileSync(pushKeyPath),
       keyId: 'AT4486F4YN',
       teamId: '5S4Z656PBW',
-      topic: 'com.dagensvimmerbyab.DH',
+      topic: 'com.dagensvimmerbyab.DV',
       production: true,
       type: 'p8'
     }
