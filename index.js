@@ -4,6 +4,7 @@ const express = require('express');
 const http = require('http');
 const { ParseServer } = require('parse-server');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 1337;
@@ -16,29 +17,27 @@ if (!databaseUri) {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
-/*
-// 📦 Push-konfiguration – tillfälligt inaktiverad
-const androidPushConfigs = {
-  'id-FAoIJ78ValGFwYdBWfxch7Fm': {
-    senderId: '9966393092',
-    apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
-  }
-};
+const pushKeyPath = path.resolve(__dirname, './certificate/AuthKey-AT4486F4YN.p8');
+console.log('🔐 Push key path:', pushKeyPath);
 
-const pushConfig = {
-  android: androidPushConfigs[appId],
-  ios: [
-    {
-      p8: process.env.APNS_P8_KEY,
-      keyId: 'AT4486F4YN',
-      teamId: '5S4Z656PBW',
-      bundleId: 'com.dagensvimmerbyab.DH',
-      production: true,
-      type: 'p8'
+let pushConfig;
+try {
+  const apnsKey = fs.readFileSync(pushKeyPath);
+
+  pushConfig = {
+    ios: {
+      token: {
+        key: apnsKey,
+        keyId: 'AT4486F4YN',
+        teamId: '5S4Z656PBW'
+      },
+      topic: 'com.dagensvimmerbyab.DH',
+      production: true
     }
-  ]
-};
-*/
+  };
+} catch (err) {
+  console.error('❌ Kunde inte läsa APNs-nyckeln:', err.message);
+}
 
 const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
 const serverURL = process.env.SERVER_URL || herokuURL;
@@ -51,7 +50,7 @@ const parseServer = new ParseServer({
   masterKey: process.env.MASTER_KEY,
   serverURL,
   publicServerURL,
-  // push: pushConfig, // 🚫 Tillfälligt inaktiverad
+  push: pushConfig,
   liveQuery: {
     classNames: ['Posts', 'Comments']
   }
