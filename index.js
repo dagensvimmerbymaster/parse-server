@@ -34,6 +34,7 @@ const pushConfig = {
       teamId: '5S4Z656PBW',
       bundleId: 'com.dagensvimmerbyab.DV',
       production: true
+      type: 'p8'
     }
   ]
 };
