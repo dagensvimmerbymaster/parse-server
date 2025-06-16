@@ -17,27 +17,32 @@ if (!databaseUri) {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
-const pushKeyPath = path.resolve(__dirname, './certificate/AuthKey-AT4486F4YN.p8');
+// 🔐 iOS push key path
+const pushKeyPath = '/Users/elham/Documents/certificates/AuthKey_AT4486F4YN.p8 (kopia)';
 console.log('🔐 Push key path:', pushKeyPath);
 
-let pushConfig;
-try {
-  const apnsKey = fs.readFileSync(pushKeyPath);
+// 📦 Android push config
+const androidPushConfigs = {
+  'id-FAoIJ78ValGFwYdBWfxch7Fm': {
+    senderId: '9966393092',
+    apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
+  }
+};
 
-  pushConfig = {
-    ios: {
-      token: {
-        key: apnsKey,
-        keyId: 'AT4486F4YN',
-        teamId: '5S4Z656PBW'
-      },
-      topic: 'com.dagensvimmerbyab.DH',
-      production: true
+// ✅ Kombinerad push-konfiguration
+const pushConfig = {
+  android: androidPushConfigs[appId],
+  ios: [
+    {
+      p8: fs.readFileSync(pushKeyPath),
+      keyId: 'AT4486F4YN',
+      teamId: '5S4Z656PBW',
+      bundleId: 'com.dagensvimmerbyab.DH',
+      production: true,
+      type: 'p8'
     }
-  };
-} catch (err) {
-  console.error('❌ Kunde inte läsa APNs-nyckeln:', err.message);
-}
+  ]
+};
 
 const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
 const serverURL = process.env.SERVER_URL || herokuURL;
