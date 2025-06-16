@@ -61,9 +61,9 @@ const app = express();
 // Servera statiskt innehåll
 app.use('/public', express.static(path.join(__dirname, '/public')));
 
-// Mounta Parse API
+// Mounta Parse API korrekt med .expressApp()
 const mountPath = process.env.PARSE_MOUNT || '/parse';
-app.use(mountPath, parseServer);
+app.use(mountPath, parseServer.expressApp());
 
 // Test-rutter
 app.get('/', (req, res) => {
