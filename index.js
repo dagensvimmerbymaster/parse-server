@@ -1,8 +1,8 @@
-// index.js – För Parse Server v6+ med korrekt push-adapter v3+ stöd
+// index.js – För Parse Server v6+ med push-adapter v3.4.1 override
 
 const express = require('express');
 const http = require('http');
-const { ParseServer } = require('parse-server');
+const ParseServer = require('parse-server/lib/index').ParseServer; // 🔁 För att forcera rätt push-adapter
 const path = require('path');
 const fs = require('fs');
 const PushAdapter = require('@parse/push-adapter').default;
@@ -32,7 +32,7 @@ const androidPushConfigs = {
   }
 };
 
-// ✅ PushAdapter-instans enligt v3-format
+// ✅ PushAdapter-instans enligt v3.4.1-format (utan cert.pem / key.pem)
 const pushAdapter = new PushAdapter({
   android: androidPushConfigs[appId],
   ios: [
@@ -52,7 +52,7 @@ const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
 const serverURL = process.env.SERVER_URL || herokuURL;
 const publicServerURL = process.env.PUBLIC_SERVER_URL || herokuURL;
 
-// ✅ Parse Server-instans
+// ✅ Parse Server-instans med manuell push-adapter override
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
