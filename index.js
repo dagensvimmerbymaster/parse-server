@@ -10,18 +10,20 @@ const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 
+// ✅ Korrekt MongoDB URI
 const databaseUri = process.env.DATABASE_URI || process.env.MONGODB_URI;
 if (!databaseUri) {
   console.warn('⚠️ DATABASE_URI not specified, falling back to localhost.');
 }
 
+// ✅ App ID
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
-// 🔐 iOS push key path
-const pushKeyPath = '/certificates/AuthKey_AT4486F4YN.p8';
+// ✅ Push key path – relativt för Heroku
+const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
-// 📦 Android push config
+// ✅ Android push config
 const androidPushConfigs = {
   'id-FAoIJ78ValGFwYdBWfxch7Fm': {
     senderId: '9966393092',
@@ -44,10 +46,12 @@ const pushConfig = {
   ]
 };
 
+// ✅ URL-konfigurationer
 const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
 const serverURL = process.env.SERVER_URL || herokuURL;
 const publicServerURL = process.env.PUBLIC_SERVER_URL || herokuURL;
 
+// ✅ Parse Server-instans
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
@@ -61,9 +65,11 @@ const parseServer = new ParseServer({
   }
 });
 
+// ✅ Middleware
 app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, '/public')));
 
+// ✅ Routes
 app.get('/', (req, res) => {
   res.status(200).send('✅ Parse Server deployed successfully.');
 });
@@ -72,9 +78,11 @@ app.get('/test', (req, res) => {
   res.sendFile(path.join(__dirname, '/public/test.html'));
 });
 
+// ✅ Starta server
 const httpServer = http.createServer(app);
 httpServer.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}${mountPath}`);
 });
 
+// ✅ LiveQuery
 ParseServer.createLiveQueryServer(httpServer);
