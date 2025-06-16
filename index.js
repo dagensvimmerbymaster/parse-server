@@ -1,5 +1,6 @@
 // index.js – För Parse Server v6+ med push-adapter v3.4.1 override
 
+console.log('✅ Using push-adapter version:', require('@parse/push-adapter/package.json').version);
 const express = require('express');
 const http = require('http');
 const { ParseServer } = require('parse-server');
