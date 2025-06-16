@@ -2,7 +2,7 @@
 
 const express = require('express');
 const http = require('http');
-const ParseServer = require('parse-server/lib/index').ParseServer; // 🔁 För att forcera rätt push-adapter
+const ParseServer = require('parse-server/lib/index').ParseServer; // 🔁 Forcera rätt push-adapter
 const path = require('path');
 const fs = require('fs');
 const PushAdapter = require('@parse/push-adapter').default;
@@ -20,8 +20,8 @@ if (!databaseUri) {
 // ✅ App ID
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
-// ✅ Push key path – relativt för Heroku
-const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
+// ✅ Push key path – korrigerad till root-nivå
+const pushKeyPath = path.resolve(__dirname, 'AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
 // ✅ Android push config
@@ -32,7 +32,7 @@ const androidPushConfigs = {
   }
 };
 
-// ✅ PushAdapter-instans enligt v3.4.1-format (utan cert.pem / key.pem)
+// ✅ PushAdapter-instans enligt v3.4.1-format
 const pushAdapter = new PushAdapter({
   android: androidPushConfigs[appId],
   ios: [
@@ -52,7 +52,7 @@ const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
 const serverURL = process.env.SERVER_URL || herokuURL;
 const publicServerURL = process.env.PUBLIC_SERVER_URL || herokuURL;
 
-// ✅ Parse Server-instans med manuell push-adapter override
+// ✅ Parse Server-instans
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
