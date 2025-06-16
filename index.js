@@ -24,7 +24,7 @@ const androidPushConfigs = {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
-// Push-konfiguration utan fil – med miljövariabel
+// Push-konfiguration (iOS + Android)
 const pushConfig = {
   android: androidPushConfigs[appId],
   ios: [
@@ -32,9 +32,9 @@ const pushConfig = {
       p8: process.env.APNS_P8_KEY,
       keyId: 'AT4486F4YN',
       teamId: '5S4Z656PBW',
-      bundleId: 'com.dagensvimmerbyab.DV',
-      production: true
-      type: 'p8'
+      bundleId: 'com.dagensvimmerbyab.DH',
+      production: true,
+      type: 'p8' // ✅ Viktigt för att Parse inte ska förvänta sig .pem
     }
   ]
 };
@@ -73,3 +73,4 @@ httpServer.listen(port, () => {
 });
 
 ParseServer.createLiveQueryServer(httpServer);
+
