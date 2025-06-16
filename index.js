@@ -34,14 +34,19 @@ const pushConfig = androidPushConfigs[appId]
   ? { android: androidPushConfigs[appId] }
   : undefined;
 
+// Ange korrekt serverURL och publicServerURL
+const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
+const serverURL = process.env.SERVER_URL || herokuURL;
+const publicServerURL = process.env.PUBLIC_SERVER_URL || herokuURL;
+
 // Skapa Parse Server-instans
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
   masterKey: process.env.MASTER_KEY,
-  serverURL: process.env.SERVER_URL || `http://localhost:${port}${mountPath}`,
-  publicServerURL: process.env.PUBLIC_SERVER_URL || `http://localhost:${port}${mountPath}`,
+  serverURL: serverURL,
+  publicServerURL: publicServerURL,
   push: pushConfig,
   liveQuery: {
     classNames: ['Posts', 'Comments'] // Ändra efter behov
