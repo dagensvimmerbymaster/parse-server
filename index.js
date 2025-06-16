@@ -35,14 +35,16 @@ const androidPushConfigs = {
   }
 };
 
+// App ID från miljö eller fallback
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 
+// Push-config (endast Android just nu)
 const pushConfig = androidPushConfigs[appId]
   ? { android: androidPushConfigs[appId] }
   : undefined;
 
 // Skapa Parse Server-instansen
-const parseServer = ParseServer.start({
+const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
@@ -63,7 +65,7 @@ app.use('/public', express.static(path.join(__dirname, '/public')));
 
 // Mounta Parse API korrekt
 const mountPath = process.env.PARSE_MOUNT || '/parse';
-app.use(mountPath, parseServer.app); // ✅ rätt här
+app.use(mountPath, parseServer.app); // 💡 Rätt metod för ParseServer v6.x
 
 // Test-rutter
 app.get('/', (req, res) => {
