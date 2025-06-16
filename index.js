@@ -17,7 +17,7 @@ console.log('Push key path:', pushKeyPath);
 
 // Push-konfiguration för Android (enligt appId)
 const androidPushConfigs = {
-  'id-dagensvimmerby': {
+  'id-FAoIJ78ValGFwYdBWfxch7Fm': {
     senderId: '9966393092',
     apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
   },
