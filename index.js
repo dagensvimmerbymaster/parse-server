@@ -14,7 +14,10 @@ if (!databaseUri) {
   console.warn('⚠️ DATABASE_URI not specified, falling back to localhost.');
 }
 
-// Android push-konfiguration
+const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
+
+/*
+// 📦 Push-konfiguration – tillfälligt inaktiverad
 const androidPushConfigs = {
   'id-FAoIJ78ValGFwYdBWfxch7Fm': {
     senderId: '9966393092',
@@ -22,9 +25,6 @@ const androidPushConfigs = {
   }
 };
 
-const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
-
-// Push-konfiguration (iOS + Android)
 const pushConfig = {
   android: androidPushConfigs[appId],
   ios: [
@@ -34,10 +34,11 @@ const pushConfig = {
       teamId: '5S4Z656PBW',
       bundleId: 'com.dagensvimmerbyab.DH',
       production: true,
-      type: 'p8' // ✅ Viktigt för att Parse inte ska förvänta sig .pem
+      type: 'p8'
     }
   ]
 };
+*/
 
 const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
 const serverURL = process.env.SERVER_URL || herokuURL;
@@ -50,7 +51,7 @@ const parseServer = new ParseServer({
   masterKey: process.env.MASTER_KEY,
   serverURL,
   publicServerURL,
-  push: pushConfig,
+  // push: pushConfig, // 🚫 Tillfälligt inaktiverad
   liveQuery: {
     classNames: ['Posts', 'Comments']
   }
@@ -73,4 +74,3 @@ httpServer.listen(port, () => {
 });
 
 ParseServer.createLiveQueryServer(httpServer);
-
