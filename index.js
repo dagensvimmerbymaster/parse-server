@@ -1,5 +1,3 @@
-// index.js – Stabil version utan readOnlyMasterKey, med /serverInfo och felhantering
-
 console.log('✅ Initierar Parse Server med push-stöd...');
 
 const express = require('express');
@@ -26,7 +24,6 @@ console.log('📦 APP_ID:', appId);
 console.log('📦 MASTER_KEY:', masterKey);
 console.log('🌍 SERVER_URL:', serverURL);
 
-// Push setup
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
 
@@ -48,7 +45,33 @@ const pushAdapter = new PushAdapter({
   ]
 });
 
-// Initiera Parse Server
+// ✅ CORS-fix för Parse Dashboard
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key'
+  );
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  next();
+});
+
+// ✅ Dashboard-kompatibel endpoint
+app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
+  return res.json({
+    parseServerVersion: ParseServer.version,
+    features: {
+      globalConfig: true,
+      hooks: true,
+      logs: true,
+      push: true,
+      schemas: true,
+      cloudCode: true,
+      logsViewer: true
+    }
+  });
+});
+
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
@@ -57,51 +80,22 @@ const parseServer = new ParseServer({
   serverURL,
   publicServerURL: serverURL,
   push: { adapter: pushAdapter },
+  masterKeyIps: ['0.0.0.0/0'], // ✅ Viktigt för dashboarden
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
     _Installation: {
-      '*': [] // öppna för dashboarden
+      '*': []
     }
   }
-});
-
-// Felhantering
-process.on('uncaughtException', (err) => {
-  console.error('🧨 Uncaught Exception:', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🧨 Unhandled Rejection:', reason);
 });
 
 app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
-// Hälsokoll
 app.get('/', (_, res) => {
   res.status(200).send('✅ Parse Server uppe och kör!');
-});
-
-// Dashboard support: serverInfo
-app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
-  try {
-    res.json({
-      parseServerVersion: ParseServer.version,
-      features: {
-        globalConfig: true,
-        hooks: true,
-        logs: true,
-        push: true,
-        schemas: true,
-        cloudCode: true,
-        logsViewer: true
-      }
-    });
-  } catch (err) {
-    console.error('❌ Fel i /serverInfo:', err);
-    res.status(500).json({ error: 'Server error i /serverInfo' });
-  }
 });
 
 app.get('/test', (_, res) => {
