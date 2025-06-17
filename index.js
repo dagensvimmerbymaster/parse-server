@@ -65,17 +65,12 @@ const parseServer = new ParseServer({
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
-  customPages: {
-    healthCheck: undefined
-  },
+  masterKeyIps: ['*'], // ✅ Tillåt masterKey från alla IP-adresser tillfälligt
   healthCheck: async () => {
     console.log('🔥 Custom health check körs!');
     return { success: true };
   }
 });
-
-// 🧠 FIX: tvinga Parse Server att gå till "running"
-parseServer.start();
 
 app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, '/public')));
