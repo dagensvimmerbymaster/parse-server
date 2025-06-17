@@ -36,6 +36,7 @@ const pushAdapter = new PushAdapter({
 ios: [
   {
     p8: fs.readFileSync(pushKeyPath),
+    pem: fs.readFileSync(path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.pem')),
     keyId: 'AT4486F4YN',
     teamId: '5S4Z656PBW',
     topic: 'com.dagensvimmerbyab.DV', // ✅ Rätt nyckel för .p8
