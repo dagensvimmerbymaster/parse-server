@@ -1,6 +1,7 @@
 // index.js – För Parse Server v6+ med push-adapter v3.4.1 override
 
 console.log('✅ Using push-adapter version:', require('@parse/push-adapter/package.json').version);
+
 const express = require('express');
 const http = require('http');
 const { ParseServer } = require('parse-server');
@@ -20,7 +21,9 @@ if (!databaseUri) {
 }
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
+const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 
+// 📍 Här används .p8-nyckeln – om du istället vill använda .pem, säg till
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
@@ -33,33 +36,35 @@ const androidPushConfigs = {
 
 const pushAdapter = new PushAdapter({
   android: androidPushConfigs[appId],
-  ios: {
-    token: {
-      key: fs.readFileSync(pushKeyPath),
-      keyId: 'AT4486F4YN',
-      teamId: '5S4Z656PBW'
-    },
-    topic: 'com.dagensvimmerbyab.DV',
-    production: true
-  }
+  ios: [
+    {
+      token: {
+        key: fs.readFileSync(pushKeyPath),
+        keyId: 'AT4486F4YN',
+        teamId: '5S4Z656PBW'
+      },
+      topic: 'com.dagensvimmerbyab.DV',
+      production: true
+    }
+  ]
 });
 
-const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
-const serverURL = process.env.SERVER_URL || herokuURL;
-const publicServerURL = process.env.PUBLIC_SERVER_URL || herokuURL;
+const serverURL = 'https://dagensvimmerby.herokuapp.com/parse';
+const publicServerURL = 'https://dagensvimmerby.herokuapp.com/parse';
 
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
-  masterKey: process.env.MASTER_KEY,
+  masterKey,
   serverURL,
   publicServerURL,
+  verifyUserEmails: false,
+  verbose: true,
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
-  },
-  verbose: true
+  }
 });
 
 app.use(mountPath, parseServer.app);
@@ -79,5 +84,3 @@ httpServer.listen(port, () => {
 });
 
 ParseServer.createLiveQueryServer(httpServer);
-
-
