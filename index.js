@@ -1,4 +1,4 @@
-// index.js – För Parse Server v6+ med push-adapter v3.4.1 utan IP-restriktion
+// index.js – För Parse Server v6+ med push-adapter v3.4.1 override
 
 console.log('✅ Using push-adapter version:', require('@parse/push-adapter/package.json').version);
 
@@ -23,6 +23,7 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 
+// 🔐 Push-certifikat (.p8) konfiguration
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
@@ -72,6 +73,9 @@ const parseServer = new ParseServer({
     return { success: true };
   }
 });
+
+// 🧠 FIX: tvinga Parse Server att gå till "running"
+parseServer.start();
 
 app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, '/public')));
