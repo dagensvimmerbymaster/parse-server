@@ -33,16 +33,16 @@ const androidPushConfigs = {
 
 const pushAdapter = new PushAdapter({
   android: androidPushConfigs[appId],
-  ios: [
-    {
-      p8: fs.readFileSync(pushKeyPath),
-      keyId: 'AT4486F4YN',
-      teamId: '5S4Z656PBW',
-      bundleId: 'com.dagensvimmerbyab.DV',
-      production: true,
-      type: 'p8'
-    }
-  ]
+ios: [
+  {
+    p8: fs.readFileSync(pushKeyPath),
+    keyId: 'AT4486F4YN',
+    teamId: '5S4Z656PBW',
+    topic: 'com.dagensvimmerbyab.DV', // ✅ Rätt nyckel för .p8
+    production: true,
+    type: 'p8'
+  }
+]
 });
 
 const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
