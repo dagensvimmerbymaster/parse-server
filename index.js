@@ -23,7 +23,7 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 
-// 📍 Här används .p8-nyckeln – om du istället vill använda .pem, säg till
+// 🔐 Använder .p8-nyckeln – om du vill byta till .pem, uppdatera filnamnet nedan
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
@@ -61,6 +61,7 @@ const parseServer = new ParseServer({
   publicServerURL,
   verifyUserEmails: false,
   verbose: true,
+  healthCheckPath: '/parse/health',
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
