@@ -1,4 +1,4 @@
-// index.js – Stabil version för Parse Server v6+ med dashboard- och push-stöd
+// index.js – Parse Server med dashboard-stöd och push
 
 console.log('✅ Initierar Parse Server med push-stöd...');
 
@@ -18,23 +18,23 @@ if (!databaseUri) {
   console.warn('⚠️ DATABASE_URI not specified, använder localhost.');
 }
 
-const appId = process.env.APP_ID;
-const masterKey = process.env.MASTER_KEY;
-const readOnlyMasterKey = process.env.READ_ONLY_MASTER_KEY || ''; // om du behöver
+const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
+const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
+const serverURL = process.env.SERVER_URL || 'https://dagensvimmerby.herokuapp.com/parse';
 
 console.log('📦 MASTER_KEY:', masterKey);
-console.log('📦 READ_ONLY_MASTER_KEY:', readOnlyMasterKey);
-console.log('🔁 Jämförda nycklar lika?:', masterKey === readOnlyMasterKey);
 
+// 🔐 Push-certifikat
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
 
 const pushAdapter = new PushAdapter({
   android: {
     senderId: '9966393092',
-    apiKey: '...'
+    apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
   },
-  ios: [{
+  ios: [
+    {
       token: {
         key: fs.readFileSync(pushKeyPath),
         keyId: 'AT4486F4YN',
@@ -42,10 +42,43 @@ const pushAdapter = new PushAdapter({
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true
-  }]
+    }
+  ]
 });
 
-// ✚ Custom endpoint för serverInfo — dashboard kräver detta för att ansluta
+const parseServer = new ParseServer({
+  databaseURI: databaseUri,
+  cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
+  appId,
+  masterKey,
+  serverURL,
+  publicServerURL: serverURL,
+  push: { adapter: pushAdapter },
+  liveQuery: {
+    classNames: ['Posts', 'Comments']
+  },
+  masterKeyIps: ['0.0.0.0/0', '::/0'], // Tillåt masterKey från alla IP
+  protectedFields: {
+    _Installation: {
+      '*': [] // Gör _Installation synlig i dashboard
+    }
+  }
+});
+
+// Mounta Parse Server API
+app.use(mountPath, parseServer.app);
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Enkelt hälsotest
+app.get('/', (_, res) => {
+  res.status(200).send('✅ Parse Server uppe och kör!');
+});
+
+app.get('/test', (_, res) => {
+  res.sendFile(path.join(__dirname, 'public/test.html'));
+});
+
+// Custom route för dashboard /parse/serverInfo
 app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
@@ -61,31 +94,9 @@ app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
   });
 });
 
-const parseServer = new ParseServer({
-  databaseURI: databaseUri,
-  cloud: path.join(__dirname, 'cloud/main.js'),
-  appId,
-  masterKey,
-  ...(readOnlyMasterKey && { readOnlyMasterKey }), // endast om olika
-  serverURL: process.env.SERVER_URL,
-  publicServerURL: process.env.PUBLIC_SERVER_URL,
-  push: { adapter: pushAdapter },
-  liveQuery: { classNames: ['Posts', 'Comments'] },
-  protectedFields: {
-    _Installation: { '*': [] }
-  },
-  allowHeaders: ['X-Parse-Master-Key', 'X-Parse-REST-API-Key', 'X-Parsed-Application-Id']
+const httpServer = http.createServer(app);
+httpServer.listen(port, () => {
+  console.log(`🚀 Servern körs på http://localhost:${port}${mountPath}`);
 });
 
-// Mounta parse-server
-app.use(mountPath, parseServer.app);
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
-app.get('/', (_, res) => res.send('🚀 Parse Server igång!'));
-app.get('/test', (_, res) => res.sendFile(path.join(__dirname, 'public/test.html')));
-
-const httpServer = http.createServer(app);
-httpServer.listen(port, () =>
-  console.log(`Server lyssnar på http://localhost:${port}${mountPath}`)
-);
 ParseServer.createLiveQueryServer(httpServer);
