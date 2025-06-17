@@ -1,4 +1,4 @@
-// index.js – Stabil version för Parse Server v6+ som funkar med dashboard och push
+// index.js – Stabil version för Parse Server v6+ med dashboard och push
 
 console.log('✅ Initierar Parse Server med push-stöd...');
 
@@ -21,6 +21,10 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 const readOnlyMasterKey = process.env.READ_ONLY_MASTER_KEY || 'key-readonly-2025';
+
+if (readOnlyMasterKey === masterKey) {
+  throw new Error('❌ masterKey och readOnlyMasterKey måste vara olika');
+}
 
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
@@ -52,33 +56,16 @@ const parseServer = new ParseServer({
   masterKey,
   readOnlyMasterKey,
   serverURL,
-  publicServerURL: serverURL,
+  publicServerURL: process.env.PUBLIC_SERVER_URL || serverURL,
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
-  masterKeyIps: ['0.0.0.0/0', '::/0'], // ✅ Tillåt dashboard från alla IP:n
   protectedFields: {
     _Installation: {
-      '*': [] // gör _Installation tillgänglig för dashboard
+      '*': [] // Tillåt dashboard åtkomst
     }
   }
-});
-
-// ✅ Lägg till /serverInfo route manuellt – krävs av nya dashboard-versioner
-app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
-  res.json({
-    parseServerVersion: ParseServer.version,
-    features: {
-      globalConfig: true,
-      hooks: true,
-      logs: true,
-      push: true,
-      schemas: true,
-      cloudCode: true,
-      logsViewer: true
-    }
-  });
 });
 
 app.use(mountPath, parseServer.app);
@@ -92,9 +79,25 @@ app.get('/test', (_, res) => {
   res.sendFile(path.join(__dirname, 'public/test.html'));
 });
 
+// 🔧 Gör Parse Dashboard lycklig (fix för /serverInfo)
+app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
+  return res.json({
+    parseServerVersion: ParseServer.version,
+    features: {
+      globalConfig: true,
+      hooks: true,
+      logs: true,
+      push: true,
+      schemas: true,
+      cloudCode: true,
+      logsViewer: true
+    }
+  });
+});
+
 const httpServer = http.createServer(app);
 httpServer.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}${mountPath}`);
+  console.log(`🚀 Servern körs på http://localhost:${port}${mountPath}`);
 });
 
 ParseServer.createLiveQueryServer(httpServer);
