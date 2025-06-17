@@ -33,17 +33,15 @@ const androidPushConfigs = {
 
 const pushAdapter = new PushAdapter({
   android: androidPushConfigs[appId],
-  ios: [
-    {
-      token: {
-        key: fs.readFileSync(pushKeyPath),
-        keyId: 'AT4486F4YN',
-        teamId: '5S4Z656PBW'
-      },
-      topic: 'com.dagensvimmerbyab.DV',
-      production: true
-    }
-  ]
+  ios: {
+    token: {
+      key: fs.readFileSync(pushKeyPath),
+      keyId: 'AT4486F4YN',
+      teamId: '5S4Z656PBW'
+    },
+    topic: 'com.dagensvimmerbyab.DV',
+    production: true
+  }
 });
 
 const herokuURL = 'https://dagensvimmerby.herokuapp.com' + mountPath;
@@ -60,7 +58,8 @@ const parseServer = new ParseServer({
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
-  }
+  },
+  verbose: true
 });
 
 app.use(mountPath, parseServer.app);
@@ -80,4 +79,5 @@ httpServer.listen(port, () => {
 });
 
 ParseServer.createLiveQueryServer(httpServer);
+
 
