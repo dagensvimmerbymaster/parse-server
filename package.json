@@ -8,10 +8,10 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@parse/push-adapter": "3.4.1",
     "express": "^4.18.2",
     "parse": "^3.4.5",
-    "parse-server": "^6.5.11",
-    "@parse/push-adapter": "3.4.1"
+    "parse-server": "6.5.11"
   },
   "overrides": {
     "@parse/push-adapter": "3.4.1"
