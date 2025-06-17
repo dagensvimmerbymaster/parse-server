@@ -49,16 +49,17 @@ const parseServer = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
   appId,
   masterKey,
+  readOnlyMasterKey: masterKey,
   serverURL,
   publicServerURL: serverURL,
+  allowServerInfo: true, // 🟢 Aktivera /serverInfo för dashboarden
   push: { adapter: pushAdapter },
-  readOnlyMasterKey: masterKey,
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
     _Installation: {
-      '*': [] // gör _Installation tillgänglig för dashboard
+      '*': [] // Gör _Installation tillgänglig för dashboard
     }
   }
 });
