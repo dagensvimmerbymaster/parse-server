@@ -20,6 +20,7 @@ if (!databaseUri) {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
+const readOnlyMasterKey = 'key-readonly-2025'; // ✅ MÅSTE vara annan än masterKey
 
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
@@ -49,17 +50,16 @@ const parseServer = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
   appId,
   masterKey,
-  readOnlyMasterKey: masterKey,
+  readOnlyMasterKey, // ✅ Nu unik
   serverURL,
   publicServerURL: serverURL,
-  allowServerInfo: true, // 🟢 Aktivera /serverInfo för dashboarden
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
     _Installation: {
-      '*': [] // Gör _Installation tillgänglig för dashboard
+      '*': [] // gör _Installation tillgänglig för dashboard
     }
   }
 });
