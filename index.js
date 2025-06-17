@@ -20,20 +20,9 @@ if (!databaseUri) {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
-const readOnlyMasterKey = process.env.READ_ONLY_MASTER_KEY || 'key-readonly-2025';
 
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
-
-// 🔎 Debug-loggar för nycklar
-console.log('📦 MASTER_KEY:', masterKey);
-console.log('📦 READ_ONLY_MASTER_KEY:', readOnlyMasterKey);
-console.log('🔁 Jämförda nycklar lika?:', masterKey === readOnlyMasterKey);
-
-// 🚨 Stoppa servern om nycklarna är lika
-if (masterKey === readOnlyMasterKey) {
-  throw new Error('❌ masterKey och readOnlyMasterKey måste vara olika!');
-}
 
 const pushAdapter = new PushAdapter({
   android: {
@@ -60,26 +49,22 @@ const parseServer = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
   appId,
   masterKey,
-  readOnlyMasterKey,
   serverURL,
-  publicServerURL: process.env.PUBLIC_SERVER_URL || serverURL,
+  publicServerURL: serverURL,
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
     _Installation: {
-      '*': []
+      '*': [] // gör _Installation tillgänglig för dashboard
     }
   }
 });
 
-app.use(mountPath, parseServer.app);
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
-// Lägg till stöd för dashboardens /serverInfo-förfrågan
+// För att Parse Dashboard ska kunna hämta serverInfo
 app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
-  res.json({
+  return res.json({
     parseServerVersion: ParseServer.version,
     features: {
       globalConfig: true,
@@ -92,6 +77,9 @@ app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
     }
   });
 });
+
+app.use(mountPath, parseServer.app);
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get('/', (_, res) => {
   res.status(200).send('✅ Parse Server uppe och kör!');
