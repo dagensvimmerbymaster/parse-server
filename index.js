@@ -61,13 +61,16 @@ const parseServer = new ParseServer({
   publicServerURL,
   verifyUserEmails: false,
   verbose: true,
-  healthCheckPath: '/parse/health',
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
-  // ✅ Fix: explicit healthCheck så dashboard fungerar
+  // ✅ Fix för att aktivera din egen healthCheck och ignorera default
+  customPages: {
+    healthCheck: undefined
+  },
   healthCheck: async () => {
+    console.log('🔥 Custom health check körs!');
     return { success: true };
   }
 });
