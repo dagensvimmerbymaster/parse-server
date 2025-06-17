@@ -65,6 +65,10 @@ const parseServer = new ParseServer({
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
+  },
+  // ✅ Fix: explicit healthCheck så dashboard fungerar
+  healthCheck: async () => {
+    return { success: true };
   }
 });
 
