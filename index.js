@@ -60,7 +60,7 @@ const parseServer = new ParseServer({
   publicServerURL,
   verifyUserEmails: false,
   verbose: true,
-  masterKeyIps: ['95.198.6.46'], // ✅ Begränsa masterKey-access till din IP
+  // masterKeyIps: ['95.198.6.46'], // ✅ Begränsa masterKey-access till din IP
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
