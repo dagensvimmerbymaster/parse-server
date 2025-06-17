@@ -1,4 +1,4 @@
-// index.js – Stabil version för Parse Server v6+ med dashboard + push + /serverInfo-fix
+// index.js – Stabil version för Parse Server v6+ som funkar med dashboard och push
 
 console.log('✅ Initierar Parse Server med push-stöd...');
 
@@ -13,16 +13,14 @@ const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 
-const databaseURI = process.env.DATABASE_URI || process.env.MONGODB_URI;
-if (!databaseURI) {
+const databaseUri = process.env.DATABASE_URI || process.env.MONGODB_URI;
+if (!databaseUri) {
   console.warn('⚠️ DATABASE_URI not specified, använder localhost.');
 }
 
-const appId = process.env.APP_ID;
-const masterKey = process.env.MASTER_KEY;
-const readOnlyMasterKey = process.env.READ_ONLY_MASTER_KEY;
-const serverURL = process.env.SERVER_URL;
-const publicServerURL = process.env.PUBLIC_SERVER_URL || serverURL;
+const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
+const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
+const readOnlyMasterKey = process.env.READ_ONLY_MASTER_KEY || 'key-readonly-2025';
 
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
@@ -45,28 +43,31 @@ const pushAdapter = new PushAdapter({
   ]
 });
 
+const serverURL = process.env.SERVER_URL || 'https://dagensvimmerby.herokuapp.com/parse';
+
 const parseServer = new ParseServer({
-  databaseURI,
+  databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
   appId,
   masterKey,
   readOnlyMasterKey,
   serverURL,
-  publicServerURL,
+  publicServerURL: serverURL,
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
+  masterKeyIps: ['0.0.0.0/0', '::/0'], // ✅ Tillåt dashboard från alla IP:n
   protectedFields: {
     _Installation: {
-      '*': [] // tillgänglig i dashboard
+      '*': [] // gör _Installation tillgänglig för dashboard
     }
   }
 });
 
-// ✅ Lägg till /serverInfo route manuellt (dashboard kräver detta)
+// ✅ Lägg till /serverInfo route manuellt – krävs av nya dashboard-versioner
 app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
-  return res.json({
+  res.json({
     parseServerVersion: ParseServer.version,
     features: {
       globalConfig: true,
