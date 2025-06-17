@@ -20,7 +20,7 @@ if (!databaseUri) {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
-const readOnlyMasterKey = 'key-readonly-2025'; // ✅ MÅSTE vara annan än masterKey
+const readOnlyMasterKey = process.env.READ_ONLY_MASTER_KEY || 'key-readonly-2025'; // 🟢 MÅSTE vara unikt
 
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
@@ -50,7 +50,7 @@ const parseServer = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
   appId,
   masterKey,
-  readOnlyMasterKey, // ✅ Nu unik
+  readOnlyMasterKey, // ✅ SKA vara annorlunda än masterKey
   serverURL,
   publicServerURL: serverURL,
   push: { adapter: pushAdapter },
@@ -81,3 +81,4 @@ httpServer.listen(port, () => {
 });
 
 ParseServer.createLiveQueryServer(httpServer);
+
