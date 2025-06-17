@@ -53,3 +53,15 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     throw new Error("Kunde inte spara installation: " + error.message);
   }
 });
+
+// ✅ Ny funktion för att hämta installationsdata (max 100 rader)
+Parse.Cloud.define("listInstallations", async (request) => {
+  if (!request.master) {
+    throw new Error("Unauthorized: MasterKey krävs.");
+  }
+
+  const query = new Parse.Query("_Installation");
+  query.limit(100);
+  query.descending("createdAt"); // Valfritt: sortera senaste först
+  return await query.find({ useMasterKey: true });
+});
