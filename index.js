@@ -1,4 +1,4 @@
-// index.js – Med hårdkodad masterKey
+// index.js – För Parse Server v6+ med push-adapter v3.4.1 override
 
 console.log('✅ Using push-adapter version:', require('@parse/push-adapter/package.json').version);
 
@@ -20,10 +20,10 @@ if (!databaseUri) {
   console.warn('⚠️ DATABASE_URI not specified, falling back to localhost.');
 }
 
-const appId = 'id-FAoIJ78ValGFwYdBWfxch7Fm';
-const masterKey = 'key-8uNA4ZslCgVoqFeuy5epBntj'; // 👈 Hårdkodad masterKey
+const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
+const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 
-// 🔐 Push-certifikat (.p8)
+// 🔐 Push-certifikat (.p8) konfiguration
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
@@ -54,13 +54,14 @@ const publicServerURL = 'https://dagensvimmerby.herokuapp.com/parse';
 
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
-  cloud: path.join(__dirname, '/cloud/main.js'),
+  cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
   masterKey,
   serverURL,
   publicServerURL,
   verifyUserEmails: false,
   verbose: true,
+  allowHeaders: ['X-Parse-Master-Key'],  // 🛠️ TILLAGD RAD
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
@@ -74,7 +75,7 @@ const parseServer = new ParseServer({
   }
 });
 
-// 🧠 Starta servern direkt
+// 🧠 FIX: tvinga Parse Server att gå till "running"
 parseServer.start();
 
 app.use(mountPath, parseServer.app);
