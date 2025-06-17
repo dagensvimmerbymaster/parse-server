@@ -54,6 +54,7 @@ const parseServer = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
   appId,
   masterKey,
+  readOnlyMasterKey: masterKey,
   serverURL,
   publicServerURL,
   verifyUserEmails: false,
@@ -62,6 +63,14 @@ const parseServer = new ParseServer({
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
+  },
+  protectedFields: {
+    _User: {
+      '*': ['email']
+    },
+    _Installation: {
+      '*': [] // Gör _Installation tillgänglig även utan masterKey
+    }
   },
   customPages: {
     healthCheck: undefined
