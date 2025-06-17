@@ -23,7 +23,6 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 
-// 🔐 Push-certifikat (.p8) konfiguration
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
@@ -61,11 +60,14 @@ const parseServer = new ParseServer({
   publicServerURL,
   verifyUserEmails: false,
   verbose: true,
+  masterKeyIps: ['95.198.6.46'], // ✅ Begränsa masterKey-access till din IP
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
-  masterKeyIps: ['*'], // ✅ Tillåt masterKey från alla IP-adresser tillfälligt
+  customPages: {
+    healthCheck: undefined
+  },
   healthCheck: async () => {
     console.log('🔥 Custom health check körs!');
     return { success: true };
