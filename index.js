@@ -51,6 +51,7 @@ const pushAdapter = new PushAdapter({
 const serverURL = 'https://dagensvimmerby.herokuapp.com/parse';
 const publicServerURL = 'https://dagensvimmerby.herokuapp.com/parse';
 
+console.log('🛠️ Initierar Parse Server...');
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, '/cloud/main.js'),
@@ -60,7 +61,7 @@ const parseServer = new ParseServer({
   publicServerURL,
   verifyUserEmails: false,
   verbose: true,
-  // masterKeyIps: ['95.198.6.46'], // ✅ Begränsa masterKey-access till din IP
+  // 🟢 masterKeyIps är INTE satt – alla IP:er tillåtna
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
@@ -73,6 +74,7 @@ const parseServer = new ParseServer({
     return { success: true };
   }
 });
+console.log('✅ Parse Server initierad.');
 
 app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, '/public')));
