@@ -23,7 +23,7 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 
-// 🔐 Använder .p8-nyckeln – om du vill byta till .pem, uppdatera filnamnet nedan
+// 🔐 Push-certifikat (.p8) konfiguration
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
@@ -65,7 +65,7 @@ const parseServer = new ParseServer({
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
-  // ✅ Fix för att aktivera din egen healthCheck och ignorera default
+  // ✅ Override för att få /parse/health att fungera korrekt
   customPages: {
     healthCheck: undefined
   },
