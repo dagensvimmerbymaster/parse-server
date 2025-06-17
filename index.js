@@ -65,7 +65,6 @@ const parseServer = new ParseServer({
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
-  // ✅ Override för att få /parse/health att fungera korrekt
   customPages: {
     healthCheck: undefined
   },
@@ -74,6 +73,9 @@ const parseServer = new ParseServer({
     return { success: true };
   }
 });
+
+// 🧠 FIX: tvinga Parse Server att gå till "running"
+parseServer.start();
 
 app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, '/public')));
