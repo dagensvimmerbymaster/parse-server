@@ -1,5 +1,3 @@
-// index.js – Uppdaterad för Parse Server v6+ med push-stöd och dashboardfixar
-
 console.log('✅ Initierar Parse Server med push-stöd...');
 
 const express = require('express');
@@ -21,7 +19,6 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 const serverURL = process.env.SERVER_URL || 'https://dagensvimmerby.herokuapp.com/parse';
-const publicServerURL = process.env.PUBLIC_SERVER_URL || serverURL;
 
 console.log('📦 APP_ID:', appId);
 console.log('📦 MASTER_KEY:', masterKey);
@@ -48,24 +45,49 @@ const pushAdapter = new PushAdapter({
   ]
 });
 
+// ✅ CORS-fix för Parse Dashboard
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key'
+  );
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  next();
+});
+
+// ✅ Dashboard-kompatibel endpoint
+app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
+  return res.json({
+    parseServerVersion: ParseServer.version,
+    features: {
+      globalConfig: true,
+      hooks: true,
+      logs: true,
+      push: true,
+      schemas: true,
+      cloudCode: true,
+      logsViewer: true
+    }
+  });
+});
+
 const parseServer = new ParseServer({
   databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
   appId,
   masterKey,
   serverURL,
-  publicServerURL,
-  allowClientClassCreation: true, // 🔧 viktigt vid uppgradering
+  publicServerURL: serverURL,
   push: { adapter: pushAdapter },
+  masterKeyIps: ['0.0.0.0/0'], // ✅ Viktigt för dashboarden
+  allowClientClassCreation: true, // 🔧 Viktigt vid uppgradering
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
-    _User: {
-      '*': ['email']
-    },
     _Installation: {
-      '*': [] // 🟢 Tillåt all tillgång till _Installation
+      '*': []
     }
   }
 });
@@ -79,21 +101,6 @@ app.get('/', (_, res) => {
 
 app.get('/test', (_, res) => {
   res.sendFile(path.join(__dirname, 'public/test.html'));
-});
-
-app.post(`${mountPath}/serverInfo`, express.json(), (_, res) => {
-  return res.json({
-    parseServerVersion: ParseServer.version,
-    features: {
-      globalConfig: true,
-      hooks: true,
-      logs: true,
-      push: true,
-      schemas: true,
-      cloudCode: true,
-      logsViewer: true
-    }
-  });
 });
 
 const httpServer = http.createServer(app);
