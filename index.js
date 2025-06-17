@@ -1,4 +1,4 @@
-// index.js – Stabil version för Parse Server v6+ som funkar med dashboard och push
+// index.js – Stabil version för Parse Server v6+ med serverInfo-route fix
 
 console.log('✅ Initierar Parse Server med push-stöd...');
 
@@ -20,7 +20,7 @@ if (!databaseUri) {
 
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
-const readOnlyMasterKey = process.env.READ_ONLY_MASTER_KEY || 'key-readonly-2025'; // 🟢 MÅSTE vara unikt
+const readOnlyMasterKey = process.env.READONLY_MASTER_KEY || 'key-readonly-2025'; // ✅ Unik
 
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
@@ -50,7 +50,7 @@ const parseServer = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
   appId,
   masterKey,
-  readOnlyMasterKey, // ✅ SKA vara annorlunda än masterKey
+  readOnlyMasterKey,
   serverURL,
   publicServerURL: serverURL,
   push: { adapter: pushAdapter },
@@ -59,13 +59,30 @@ const parseServer = new ParseServer({
   },
   protectedFields: {
     _Installation: {
-      '*': [] // gör _Installation tillgänglig för dashboard
+      '*': [] // tillgänglig för dashboard
     }
   }
 });
 
+// Mounta Parse Server
 app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// ✅ Fix: /serverInfo endpoint för dashboard-kompatibilitet
+app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
+  return res.json({
+    parseServerVersion: ParseServer.version,
+    features: {
+      globalConfig: true,
+      hooks: true,
+      logs: true,
+      push: true,
+      schemas: true,
+      cloudCode: true,
+      logsViewer: true
+    }
+  });
+});
 
 app.get('/', (_, res) => {
   res.status(200).send('✅ Parse Server uppe och kör!');
@@ -81,4 +98,3 @@ httpServer.listen(port, () => {
 });
 
 ParseServer.createLiveQueryServer(httpServer);
-
