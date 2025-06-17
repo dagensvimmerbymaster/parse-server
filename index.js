@@ -9,8 +9,6 @@ const path = require('path');
 const fs = require('fs');
 const PushAdapter = require('@parse/push-adapter').default;
 
-console.log('📦 Loaded push-adapter version:', require('@parse/push-adapter/package.json').version);
-
 const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
@@ -23,12 +21,11 @@ if (!databaseUri) {
 const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
 const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
 
-// 🔐 Push-certifikat (.p8) konfiguration
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push key path:', pushKeyPath);
 
 const androidPushConfigs = {
-  'id-FAoIJ78ValGFwYdBWfxch7Fm': {
+  [appId]: {
     senderId: '9966393092',
     apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
   }
@@ -61,7 +58,7 @@ const parseServer = new ParseServer({
   publicServerURL,
   verifyUserEmails: false,
   verbose: true,
-  allowHeaders: ['X-Parse-Master-Key'],  // 🛠️ TILLAGD RAD
+  allowHeaders: ['X-Parse-Master-Key', 'X-Parse-REST-API-Key'],
   push: { adapter: pushAdapter },
   liveQuery: {
     classNames: ['Posts', 'Comments']
@@ -75,7 +72,7 @@ const parseServer = new ParseServer({
   }
 });
 
-// 🧠 FIX: tvinga Parse Server att gå till "running"
+// 🧠 Se till att Parse Server initieras korrekt
 parseServer.start();
 
 app.use(mountPath, parseServer.app);
