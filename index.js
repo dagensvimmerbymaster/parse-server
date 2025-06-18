@@ -80,8 +80,12 @@ const parseServer = new ParseServer({
   serverURL,
   publicServerURL: serverURL,
   push: { adapter: pushAdapter },
-  masterKeyIps: ['0.0.0.0/0'], // ✅ Viktigt för dashboarden
-  allowClientClassCreation: true, // 🔧 Viktigt vid uppgradering
+
+  // 🛠️ Endast detta är nytt:
+  allowClientClassCreation: true,
+  enableSchemaHooks: true,
+
+  masterKeyIps: ['0.0.0.0/0'],
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
