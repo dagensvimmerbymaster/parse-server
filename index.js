@@ -41,6 +41,8 @@ const pushAdapter = new PushAdapter({
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true
+      maxConnections: 3,      // ✅ Begränsar samtidiga APNs-strömmar
+      verbose: true           // ✅ Få tydligare felmeddelanden i loggar
     }
   ]
 });
