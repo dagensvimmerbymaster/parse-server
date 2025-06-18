@@ -27,6 +27,17 @@ console.log('🌍 SERVER_URL:', serverURL);
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
 
+// 🚀 Lägg till firebaseServiceAccount om finns i env
+let firebaseServiceAccount = null;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    firebaseServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    console.log('✅ firebaseServiceAccount laddat.');
+  } catch (e) {
+    console.error('❌ Kunde inte parsa FIREBASE_SERVICE_ACCOUNT:', e);
+  }
+}
+
 const pushAdapter = new PushAdapter({
   android: {
     senderId: '9966393092',
@@ -44,7 +55,8 @@ const pushAdapter = new PushAdapter({
       maxConnections: 3,
       verbose: true
     }
-  ]
+  ],
+  firebaseServiceAccount: firebaseServiceAccount // ✅ Detta möjliggör FCM v1
 });
 
 // ✅ CORS för Dashboard
@@ -96,7 +108,6 @@ async function startServer() {
     liveQuery: {
       classNames: ['Posts', 'Comments']
     }
-    // ❗️INTE använda protectedFields just nu – det kan blockera _Installation etc.
   });
 
   await parseServer.start();
