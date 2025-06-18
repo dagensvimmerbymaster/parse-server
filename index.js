@@ -45,18 +45,15 @@ const pushAdapter = new PushAdapter({
   ]
 });
 
-// ✅ CORS-fix för Parse Dashboard
+// ✅ CORS för Parse Dashboard
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key'
-  );
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   next();
 });
 
-// ✅ Dashboard-kompatibel endpoint
+// ✅ Dashboard endpoint
 app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
@@ -80,8 +77,8 @@ const parseServer = new ParseServer({
   serverURL,
   publicServerURL: serverURL,
   push: { adapter: pushAdapter },
-  masterKeyIps: ['0.0.0.0/0'], // ✅ Viktigt för dashboarden
-  allowClientClassCreation: true, // ✨ Lägg till detta
+  masterKeyIps: ['0.0.0.0/0'],
+  allowClientClassCreation: true,
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
