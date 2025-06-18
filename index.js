@@ -69,30 +69,6 @@ app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
   });
 });
 
-const parseServer = new ParseServer({
-  databaseURI: databaseUri,
-  cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
-  appId,
-  masterKey,
-  serverURL,
-  publicServerURL: serverURL,
-  push: { adapter: pushAdapter },
-  masterKeyIps: ['0.0.0.0/0'],
-  allowClientClassCreation: true,
-  liveQuery: {
-    classNames: ['Posts', 'Comments']
-  },
-  protectedFields: {
-    _User: {
-      '*': ['email']
-    },
-    _Installation: {
-      '*': []
-    }
-  }
-});
-
-app.use(mountPath, parseServer.app);
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get('/', (_, res) => {
@@ -103,9 +79,43 @@ app.get('/test', (_, res) => {
   res.sendFile(path.join(__dirname, 'public/test.html'));
 });
 
-const httpServer = http.createServer(app);
-httpServer.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}${mountPath}`);
-});
+// ✅ Starta Parse Server korrekt (async)
+async function startServer() {
+  const parseServer = new ParseServer({
+    databaseURI: databaseUri,
+    cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
+    appId,
+    masterKey,
+    serverURL,
+    publicServerURL: serverURL,
+    push: { adapter: pushAdapter },
+    masterKeyIps: ['0.0.0.0/0'],
+    allowClientClassCreation: true,
+    liveQuery: {
+      classNames: ['Posts', 'Comments']
+    },
+    protectedFields: {
+      _User: {
+        '*': ['email']
+      },
+      _Installation: {
+        '*': []
+      }
+    }
+  });
 
-ParseServer.createLiveQueryServer(httpServer);
+  await parseServer.start(); // 🔥 Denna rad löser felet
+
+  app.use(mountPath, parseServer.app);
+
+  const httpServer = http.createServer(app);
+  httpServer.listen(port, () => {
+    console.log(`🚀 Server running at http://localhost:${port}${mountPath}`);
+  });
+
+  ParseServer.createLiveQueryServer(httpServer);
+}
+
+startServer().catch((err) => {
+  console.error('❌ Fel vid serverstart:', err);
+});
