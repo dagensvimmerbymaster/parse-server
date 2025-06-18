@@ -45,6 +45,9 @@ const pushAdapter = new PushAdapter({
   ]
 });
 
+// 🟢 För Heroku proxy (fix för dashboard och serverInfo state)
+app.set('trust proxy', 1);
+
 // ✅ CORS-fix för Parse Dashboard
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -79,17 +82,17 @@ const parseServer = new ParseServer({
   masterKey,
   serverURL,
   publicServerURL: serverURL,
-  push: { adapter: pushAdapter },
-
-  // 🛠️ Endast detta är nytt:
+  trustProxy: true,
   allowClientClassCreation: true,
-  enableSchemaHooks: true,
-
+  push: { adapter: pushAdapter },
   masterKeyIps: ['0.0.0.0/0'],
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
+    _User: {
+      '*': ['email']
+    },
     _Installation: {
       '*': []
     }
