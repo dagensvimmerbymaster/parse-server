@@ -89,7 +89,7 @@ async function startServer() {
     serverURL,
     publicServerURL: serverURL,
     push: { adapter: pushAdapter },
-    masterKeyIps: ['0.0.0.0/0'],
+    masterKeyIps: ['0.0.0.0/0', '::/0'], // ✅ Tillåter både IPv4 och IPv6
     allowClientClassCreation: true,
     liveQuery: {
       classNames: ['Posts', 'Comments']
@@ -104,7 +104,7 @@ async function startServer() {
     }
   });
 
-  await parseServer.start(); // 🔥 Denna rad löser felet
+  await parseServer.start();
 
   app.use(mountPath, parseServer.app);
 
