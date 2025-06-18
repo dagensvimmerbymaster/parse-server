@@ -5,7 +5,6 @@ const http = require('http');
 const { ParseServer } = require('parse-server');
 const path = require('path');
 const fs = require('fs');
-const PushAdapter = require('@parse/push-adapter').default;
 
 const app = express();
 const port = process.env.PORT || 1337;
@@ -27,39 +26,7 @@ console.log('🌍 SERVER_URL:', serverURL);
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
 
-// 🚀 Lägg till firebaseServiceAccount om finns i env
-let firebaseServiceAccount = null;
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    firebaseServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    console.log('✅ firebaseServiceAccount laddat.');
-  } catch (e) {
-    console.error('❌ Kunde inte parsa FIREBASE_SERVICE_ACCOUNT:', e);
-  }
-}
-
-const pushAdapter = new PushAdapter({
-  android: {
-    senderId: '9966393092',
-    apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
-  },
-  ios: [
-    {
-      token: {
-        key: fs.readFileSync(pushKeyPath),
-        keyId: 'AT4486F4YN',
-        teamId: '5S4Z656PBW'
-      },
-      topic: 'com.dagensvimmerbyab.DV',
-      production: true,
-      maxConnections: 3,
-      verbose: true
-    }
-  ],
-  firebaseServiceAccount: firebaseServiceAccount // ✅ Detta möjliggör FCM v1
-});
-
-// ✅ CORS för Dashboard
+// ✅ CORS för Parse Dashboard
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key');
@@ -102,11 +69,29 @@ async function startServer() {
     masterKey,
     serverURL,
     publicServerURL: serverURL,
-    push: { adapter: pushAdapter },
     masterKeyIps: ['0.0.0.0/0', '::/0'],
     allowClientClassCreation: true,
     liveQuery: {
       classNames: ['Posts', 'Comments']
+    },
+    push: {
+      android: {
+        firebaseServiceAccount: JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT),
+        senderId: '9966393092'
+      },
+      ios: [
+        {
+          token: {
+            key: fs.readFileSync(pushKeyPath),
+            keyId: 'AT4486F4YN',
+            teamId: '5S4Z656PBW'
+          },
+          topic: 'com.dagensvimmerbyab.DV',
+          production: true,
+          maxConnections: 3,
+          verbose: true
+        }
+      ]
     }
   });
 
