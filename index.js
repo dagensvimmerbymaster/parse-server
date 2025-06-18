@@ -53,8 +53,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Dashboard endpoint
-app.post(`${mountPath}/serverInfo`, express.json(), (req, res) => {
+// ✅ Dashboard endpoint (nu GET istället för POST)
+app.get(`${mountPath}/serverInfo`, (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
     features: {
@@ -89,7 +89,7 @@ async function startServer() {
     serverURL,
     publicServerURL: serverURL,
     push: { adapter: pushAdapter },
-    masterKeyIps: ['0.0.0.0/0', '::/0'], // ✅ Tillåter både IPv4 och IPv6
+    masterKeyIps: ['0.0.0.0/0', '::/0'],
     allowClientClassCreation: true,
     liveQuery: {
       classNames: ['Posts', 'Comments']
