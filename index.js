@@ -45,9 +45,6 @@ const pushAdapter = new PushAdapter({
   ]
 });
 
-// 🟢 För Heroku proxy (fix för dashboard och serverInfo state)
-app.set('trust proxy', 1);
-
 // ✅ CORS-fix för Parse Dashboard
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -82,17 +79,12 @@ const parseServer = new ParseServer({
   masterKey,
   serverURL,
   publicServerURL: serverURL,
-  trustProxy: true,
-  allowClientClassCreation: true,
   push: { adapter: pushAdapter },
   masterKeyIps: ['0.0.0.0/0'],
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
-    _User: {
-      '*': ['email']
-    },
     _Installation: {
       '*': []
     }
@@ -108,6 +100,17 @@ app.get('/', (_, res) => {
 
 app.get('/test', (_, res) => {
   res.sendFile(path.join(__dirname, 'public/test.html'));
+});
+
+// 🛠️ Felsökningsendpoint
+app.get('/ping-schema', async (_, res) => {
+  try {
+    const result = await parseServer.schemaCache.getAllSchemas();
+    res.json({ ok: true, schemas: result });
+  } catch (err) {
+    console.error('❌ Schema error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const httpServer = http.createServer(app);
