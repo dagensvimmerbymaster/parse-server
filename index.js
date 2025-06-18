@@ -41,7 +41,7 @@ const pushAdapter = new PushAdapter({
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 3,
+      maxConnections: 1,
       verbose: true
     }
   ]
