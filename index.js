@@ -80,11 +80,15 @@ const parseServer = new ParseServer({
   serverURL,
   publicServerURL: serverURL,
   push: { adapter: pushAdapter },
-  masterKeyIps: ['0.0.0.0/0'],
+  masterKeyIps: ['0.0.0.0/0'], // ✅ Viktigt för dashboarden
+  allowClientClassCreation: true, // ✨ Lägg till detta
   liveQuery: {
     classNames: ['Posts', 'Comments']
   },
   protectedFields: {
+    _User: {
+      '*': ['email']
+    },
     _Installation: {
       '*': []
     }
@@ -100,17 +104,6 @@ app.get('/', (_, res) => {
 
 app.get('/test', (_, res) => {
   res.sendFile(path.join(__dirname, 'public/test.html'));
-});
-
-// 🛠️ Felsökningsendpoint
-app.get('/ping-schema', async (_, res) => {
-  try {
-    const result = await parseServer.schemaCache.getAllSchemas();
-    res.json({ ok: true, schemas: result });
-  } catch (err) {
-    console.error('❌ Schema error:', err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 const httpServer = http.createServer(app);
