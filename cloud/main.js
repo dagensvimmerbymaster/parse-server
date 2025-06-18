@@ -34,15 +34,16 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
       installation.set("installationId", installationId);
     }
 
-    installation.set("GCMSenderId", GCMSenderId);
-    installation.set("deviceType", deviceType);
-    installation.set("appName", appName);
-    installation.set("appIdentifier", appIdentifier);
-    installation.set("parseVersion", parseVersion);
-    installation.set("deviceToken", deviceToken);
-    installation.set("timeZone", timeZone);
-    installation.set("localeIdentifier", localeIdentifier);
-    installation.set("appVersion", appVersion);
+    // Sätt endast värden om de är definierade
+    if (GCMSenderId !== undefined) installation.set("GCMSenderId", GCMSenderId);
+    if (deviceType !== undefined) installation.set("deviceType", deviceType);
+    if (appName !== undefined) installation.set("appName", appName);
+    if (appIdentifier !== undefined) installation.set("appIdentifier", appIdentifier);
+    if (parseVersion !== undefined) installation.set("parseVersion", parseVersion);
+    if (deviceToken !== undefined) installation.set("deviceToken", deviceToken);
+    if (timeZone !== undefined) installation.set("timeZone", timeZone);
+    if (localeIdentifier !== undefined) installation.set("localeIdentifier", localeIdentifier);
+    if (appVersion !== undefined) installation.set("appVersion", appVersion);
 
     await installation.save(null, { useMasterKey: true });
 
