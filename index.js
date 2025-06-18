@@ -40,14 +40,14 @@ const pushAdapter = new PushAdapter({
         teamId: '5S4Z656PBW'
       },
       topic: 'com.dagensvimmerbyab.DV',
-      production: true
-      maxConnections: 3,      // ✅ Begränsar samtidiga APNs-strömmar
-      verbose: true           // ✅ Få tydligare felmeddelanden i loggar
+      production: true,
+      maxConnections: 3,
+      verbose: true
     }
   ]
 });
 
-// ✅ CORS för Parse Dashboard
+// ✅ CORS för Dashboard
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key');
@@ -55,7 +55,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Dashboard endpoint (nu GET istället för POST)
+// ✅ Dashboard endpoint (GET)
 app.get(`${mountPath}/serverInfo`, (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
@@ -81,7 +81,7 @@ app.get('/test', (_, res) => {
   res.sendFile(path.join(__dirname, 'public/test.html'));
 });
 
-// ✅ Starta Parse Server korrekt (async)
+// ✅ Start Parse Server
 async function startServer() {
   const parseServer = new ParseServer({
     databaseURI: databaseUri,
@@ -95,15 +95,8 @@ async function startServer() {
     allowClientClassCreation: true,
     liveQuery: {
       classNames: ['Posts', 'Comments']
-    },
-    protectedFields: {
-      _User: {
-        '*': ['email']
-      },
-      _Installation: {
-        '*': []
-      }
     }
+    // ❗️INTE använda protectedFields just nu – det kan blockera _Installation etc.
   });
 
   await parseServer.start();
