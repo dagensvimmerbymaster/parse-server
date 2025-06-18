@@ -27,17 +27,10 @@ console.log('🌍 SERVER_URL:', serverURL);
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 console.log('🔐 Push cert path:', pushKeyPath);
 
-let firebaseServiceAccount = null;
-try {
-  firebaseServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  console.log('✅ firebaseServiceAccount laddat.');
-} catch (err) {
-  console.warn('⚠️ Kunde inte ladda firebaseServiceAccount:', err.message);
-}
-
 const pushAdapter = new PushAdapter({
   android: {
-    firebaseServiceAccount
+    senderId: '9966393092',
+    apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
   },
   ios: [
     {
@@ -103,6 +96,7 @@ async function startServer() {
     liveQuery: {
       classNames: ['Posts', 'Comments']
     }
+    // ❗️INTE använda protectedFields just nu – det kan blockera _Installation etc.
   });
 
   await parseServer.start();
