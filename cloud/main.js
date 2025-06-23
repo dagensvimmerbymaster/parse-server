@@ -4,6 +4,7 @@ Parse.Cloud.define("hello", async (request) => {
   return "Hello world!";
 });
 
+// ✅ Uppdaterar eller skapar en installation
 Parse.Cloud.define("UpdateInstallation", async (request) => {
   const {
     installationId,
@@ -34,7 +35,6 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
       installation.set("installationId", installationId);
     }
 
-    // Sätt endast värden om de är definierade
     if (GCMSenderId !== undefined) installation.set("GCMSenderId", GCMSenderId);
     if (deviceType !== undefined) installation.set("deviceType", deviceType);
     if (appName !== undefined) installation.set("appName", appName);
@@ -55,7 +55,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   }
 });
 
-// ✅ Funktion för att hämta installationsdata (max 100 rader)
+// ✅ Hämta installationsdata (max 100 rader)
 Parse.Cloud.define("listInstallations", async (request) => {
   if (!request.master) {
     throw new Error("Unauthorized: MasterKey krävs.");
@@ -67,7 +67,7 @@ Parse.Cloud.define("listInstallations", async (request) => {
   return await query.find({ useMasterKey: true });
 });
 
-// ✅ Funktion som markerar installationer utan deviceToken eller pushType
+// ✅ Flagga installationer utan deviceToken/pushType
 Parse.Cloud.define("flagInvalidInstallations", async (request) => {
   if (!request.master) {
     throw new Error("⛔ MasterKey krävs.");
@@ -96,4 +96,35 @@ Parse.Cloud.define("flagInvalidInstallations", async (request) => {
     message: `✅ Markerade ${updated} installationer som 'invalid'.`,
     totalFound: results.length
   };
+});
+
+// ✅ Analysfunktion för _Installation-tabellen
+Parse.Cloud.define("analyzeInstallations", async (request) => {
+  if (!request.master) {
+    throw new Error("⛔ MasterKey krävs.");
+  }
+
+  const Installation = Parse.Object.extend("_Installation");
+
+  const countQuery = async (query) => await query.count({ useMasterKey: true });
+
+  const now = new Date();
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(now.getFullYear() - 1);
+
+  const queries = {
+    total: new Parse.Query(Installation),
+    android: new Parse.Query(Installation).equalTo("deviceType", "android"),
+    ios: new Parse.Query(Installation).equalTo("deviceType", "ios"),
+    missingDeviceToken: new Parse.Query(Installation).doesNotExist("deviceToken"),
+    oldInstallations: new Parse.Query(Installation).lessThan("updatedAt", oneYearAgo)
+  };
+
+  const results = {};
+  for (const key in queries) {
+    results[key] = await countQuery(queries[key]);
+  }
+
+  console.log("📊 Installation-analysresultat:", results);
+  return results;
 });
