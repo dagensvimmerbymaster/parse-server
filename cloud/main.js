@@ -1,10 +1,10 @@
 // Modern Cloud Code for Parse Server v6+
 
-Parse.Cloud.define("hello", async (request) => {
+Parse.Cloud.define("hello", async () => {
   return "Hello world!";
 });
 
-// ✅ Uppdaterar eller skapar en installation
+// ✅ Uppdatera eller skapa en installation
 Parse.Cloud.define("UpdateInstallation", async (request) => {
   const {
     installationId,
@@ -45,25 +45,26 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     if (localeIdentifier !== undefined) installation.set("localeIdentifier", localeIdentifier);
     if (appVersion !== undefined) installation.set("appVersion", appVersion);
 
+    // ✅ Viktigt: sätt pushType beroende på enhet
     if (deviceType === "android") {
       installation.set("pushType", "gcm");
+    } else if (deviceType === "ios") {
+      installation.set("pushType", "apn");
     }
 
     await installation.save(null, { useMasterKey: true });
 
-    // console.log("✅ Installation uppdaterad:", installation.id);
+    console.log("✅ Installation uppdaterad:", installation.id);
     return { success: true };
   } catch (error) {
-    // console.error("❌ UpdateInstallation error:", error);
+    console.error("❌ UpdateInstallation error:", error);
     throw new Error("Kunde inte spara installation: " + error.message);
   }
 });
 
-// ✅ Hämta installationsdata (max 100 rader)
+// ✅ Lista de senaste 100 installationerna
 Parse.Cloud.define("listInstallations", async (request) => {
-  if (!request.master) {
-    throw new Error("Unauthorized: MasterKey krävs.");
-  }
+  if (!request.master) throw new Error("Unauthorized: MasterKey krävs.");
 
   const query = new Parse.Query("_Installation");
   query.limit(100);
@@ -71,11 +72,9 @@ Parse.Cloud.define("listInstallations", async (request) => {
   return await query.find({ useMasterKey: true });
 });
 
-// ✅ Flagga installationer utan deviceToken/pushType
+// ✅ Flagga installationer utan deviceToken/pushType som invalid
 Parse.Cloud.define("flagInvalidInstallations", async (request) => {
-  if (!request.master) {
-    throw new Error("⛔ MasterKey krävs.");
-  }
+  if (!request.master) throw new Error("⛔ MasterKey krävs.");
 
   const Installation = Parse.Object.extend("_Installation");
   const query = new Parse.Query(Installation);
@@ -84,10 +83,9 @@ Parse.Cloud.define("flagInvalidInstallations", async (request) => {
   query.doesNotExist("pushType");
 
   const results = await query.find({ useMasterKey: true });
-  // console.log(`🔍 Hittade ${results.length} installationer utan deviceToken eller pushType.`);
+  console.log(`🔍 Hittade ${results.length} utan deviceToken/pushType.`);
 
   let updated = 0;
-
   for (const install of results) {
     if (!install.get("invalid")) {
       install.set("invalid", true);
@@ -97,24 +95,21 @@ Parse.Cloud.define("flagInvalidInstallations", async (request) => {
   }
 
   return {
-    message: `✅ Markerade ${updated} installationer som 'invalid'.`,
+    message: `✅ Markerade ${updated} som 'invalid'.`,
     totalFound: results.length
   };
 });
 
-// ✅ Analysfunktion för _Installation-tabellen
+// ✅ Analysfunktion av installationer
 Parse.Cloud.define("analyzeInstallations", async (request) => {
-  if (!request.master) {
-    throw new Error("⛔ MasterKey krävs.");
-  }
+  if (!request.master) throw new Error("⛔ MasterKey krävs.");
 
   const Installation = Parse.Object.extend("_Installation");
+  const now = new Date();
+  const oneYearAgo = new Date(now);
+  oneYearAgo.setFullYear(now.getFullYear() - 1);
 
   const countQuery = async (query) => await query.count({ useMasterKey: true });
-
-  const now = new Date();
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(now.getFullYear() - 1);
 
   const queries = {
     total: new Parse.Query(Installation),
@@ -129,6 +124,32 @@ Parse.Cloud.define("analyzeInstallations", async (request) => {
     results[key] = await countQuery(queries[key]);
   }
 
-  // console.log("📊 Installation-analysresultat:", results);
+  console.log("📊 Analysresultat:", results);
   return results;
+});
+
+// ✅ Fix: sätt pushType = 'apn' för iOS-installationer där det saknas
+Parse.Cloud.define("fixIosPushType", async (request) => {
+  if (!request.master) throw new Error("⛔ MasterKey krävs.");
+
+  const Installation = Parse.Object.extend("_Installation");
+  const query = new Parse.Query(Installation);
+  query.equalTo("deviceType", "ios");
+  query.doesNotExist("pushType");
+  query.limit(1000);
+
+  const results = await query.find({ useMasterKey: true });
+  console.log(`🔧 Hittade ${results.length} iOS-installationer utan pushType.`);
+
+  let updated = 0;
+  for (const install of results) {
+    install.set("pushType", "apn");
+    await install.save(null, { useMasterKey: true });
+    updated++;
+  }
+
+  return {
+    message: `✅ Uppdaterade ${updated} iOS-installationer med pushType = 'apn'.`,
+    totalFound: results.length
+  };
 });
