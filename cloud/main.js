@@ -45,17 +45,16 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     if (localeIdentifier !== undefined) installation.set("localeIdentifier", localeIdentifier);
     if (appVersion !== undefined) installation.set("appVersion", appVersion);
 
-    // ✅ Viktigt: Sätt pushType för Android (gcm krävs för Parse Server v6+)
     if (deviceType === "android") {
       installation.set("pushType", "gcm");
     }
 
     await installation.save(null, { useMasterKey: true });
 
-    console.log("✅ Installation uppdaterad:", installation.id);
+    // console.log("✅ Installation uppdaterad:", installation.id);
     return { success: true };
   } catch (error) {
-    console.error("❌ UpdateInstallation error:", error);
+    // console.error("❌ UpdateInstallation error:", error);
     throw new Error("Kunde inte spara installation: " + error.message);
   }
 });
@@ -85,7 +84,7 @@ Parse.Cloud.define("flagInvalidInstallations", async (request) => {
   query.doesNotExist("pushType");
 
   const results = await query.find({ useMasterKey: true });
-  console.log(`🔍 Hittade ${results.length} installationer utan deviceToken eller pushType.`);
+  // console.log(`🔍 Hittade ${results.length} installationer utan deviceToken eller pushType.`);
 
   let updated = 0;
 
@@ -130,6 +129,6 @@ Parse.Cloud.define("analyzeInstallations", async (request) => {
     results[key] = await countQuery(queries[key]);
   }
 
-  console.log("📊 Installation-analysresultat:", results);
+  // console.log("📊 Installation-analysresultat:", results);
   return results;
 });
