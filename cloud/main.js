@@ -45,6 +45,11 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     if (localeIdentifier !== undefined) installation.set("localeIdentifier", localeIdentifier);
     if (appVersion !== undefined) installation.set("appVersion", appVersion);
 
+    // ✅ Viktigt: Sätt pushType för Android (gcm krävs för Parse Server v6+)
+    if (deviceType === "android") {
+      installation.set("pushType", "gcm");
+    }
+
     await installation.save(null, { useMasterKey: true });
 
     console.log("✅ Installation uppdaterad:", installation.id);
