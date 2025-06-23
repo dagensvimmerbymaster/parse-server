@@ -55,7 +55,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   }
 });
 
-// ✅ Ny funktion för att hämta installationsdata (max 100 rader)
+// ✅ Funktion för att hämta installationsdata (max 100 rader)
 Parse.Cloud.define("listInstallations", async (request) => {
   if (!request.master) {
     throw new Error("Unauthorized: MasterKey krävs.");
@@ -63,6 +63,37 @@ Parse.Cloud.define("listInstallations", async (request) => {
 
   const query = new Parse.Query("_Installation");
   query.limit(100);
-  query.descending("createdAt"); // Valfritt: sortera senaste först
+  query.descending("createdAt");
   return await query.find({ useMasterKey: true });
+});
+
+// ✅ Funktion som markerar installationer utan deviceToken eller pushType
+Parse.Cloud.define("flagInvalidInstallations", async (request) => {
+  if (!request.master) {
+    throw new Error("⛔ MasterKey krävs.");
+  }
+
+  const Installation = Parse.Object.extend("_Installation");
+  const query = new Parse.Query(Installation);
+  query.limit(1000);
+  query.doesNotExist("deviceToken");
+  query.doesNotExist("pushType");
+
+  const results = await query.find({ useMasterKey: true });
+  console.log(`🔍 Hittade ${results.length} installationer utan deviceToken eller pushType.`);
+
+  let updated = 0;
+
+  for (const install of results) {
+    if (!install.get("invalid")) {
+      install.set("invalid", true);
+      await install.save(null, { useMasterKey: true });
+      updated++;
+    }
+  }
+
+  return {
+    message: `✅ Markerade ${updated} installationer som 'invalid'.`,
+    totalFound: results.length
+  };
 });
