@@ -52,6 +52,19 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
       installation.set("pushType", "apn");
     }
 
+    // ✅ Automatiskt lägg till "global" i channels för vissa
+    if (
+      installation.get("deviceToken") &&
+      installation.get("installationId") &&
+      installation.get("GCMSenderId")
+    ) {
+      const channels = installation.get("channels") || [];
+      if (!channels.includes("global")) {
+        channels.push("global");
+        installation.set("channels", channels);
+      }
+    }
+
     await installation.save(null, { useMasterKey: true });
 
     console.log("✅ Installation uppdaterad:", installation.id);
