@@ -171,28 +171,39 @@ Parse.Cloud.define("addGlobalChannel", async (request) => {
   if (!request.master) throw new Error("⛔ MasterKey krävs.");
 
   const Installation = Parse.Object.extend("_Installation");
-  const query = new Parse.Query(Installation);
-  query.exists("deviceToken");
-  query.exists("installationId");
-  query.exists("GCMSenderId");
-  query.limit(1000);
+  const batchSize = 1000;
+  let skip = 0;
+  let totalUpdated = 0;
+  let totalFound = 0;
 
-  const results = await query.find({ useMasterKey: true });
-  console.log(`🔍 Hittade ${results.length} installationer med token, ID och GCM.`);
+  while (true) {
+    const query = new Parse.Query(Installation);
+    query.exists("deviceToken");
+    query.exists("installationId");
+    query.exists("GCMSenderId");
+    query.skip(skip);
+    query.limit(batchSize);
 
-  let updated = 0;
-  for (const install of results) {
-    const channels = install.get("channels") || [];
-    if (!channels.includes("global")) {
-      channels.push("global");
-      install.set("channels", channels);
-      await install.save(null, { useMasterKey: true });
-      updated++;
+    const results = await query.find({ useMasterKey: true });
+    if (results.length === 0) break;
+
+    totalFound += results.length;
+
+    for (const install of results) {
+      const channels = install.get("channels") || [];
+      if (!channels.includes("global")) {
+        channels.push("global");
+        install.set("channels", channels);
+        await install.save(null, { useMasterKey: true });
+        totalUpdated++;
+      }
     }
+
+    skip += batchSize;
   }
 
   return {
-    message: `✅ La till 'global' i ${updated} installationer.`,
-    totalFound: results.length
+    message: `✅ La till 'global' i ${totalUpdated} installationer.`,
+    totalFound
   };
 });
