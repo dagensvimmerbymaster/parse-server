@@ -56,7 +56,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     if (
       installation.get("deviceToken") &&
       installation.get("installationId") &&
-      installation.get("GCMSenderId")
+      installation.get("pushType")
     ) {
       const channels = installation.get("channels") || [];
       if (!channels.includes("global")) {
@@ -180,7 +180,7 @@ Parse.Cloud.define("addGlobalChannel", async (request) => {
     const query = new Parse.Query(Installation);
     query.exists("deviceToken");
     query.exists("installationId");
-    query.exists("GCMSenderId");
+    query.exists("pushType");
     query.skip(skip);
     query.limit(batchSize);
 
