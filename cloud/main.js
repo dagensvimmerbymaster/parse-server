@@ -190,20 +190,22 @@ Parse.Cloud.define("addGlobalChannel", async (request) => {
     totalFound += results.length;
 
     for (const install of results) {
-      let channels = install.get("channels");
+   let channels = install.get("channels");
 
-      // 💥 Om channels är sträng eller null, byt till korrekt array
-      if (!Array.isArray(channels)) {
-        channels = [];
-      }
+if (!Array.isArray(channels)) {
+  channels = [];
+} else {
+  // Rensa bort icke-strängar
+  channels = channels.filter(c => typeof c === "string");
+}
 
-      if (!channels.includes("global")) {
-        channels.push("global");
-        install.set("channels", channels);
-        await install.save(null, { useMasterKey: true });
-        totalUpdated++;
-      }
-    }
+if (!channels.includes("global")) {
+  channels.push("global");
+  install.set("channels", channels);
+  await install.save(null, { useMasterKey: true });
+  totalUpdated++;
+}
+
 
     skip += batchSize;
   }
