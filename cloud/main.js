@@ -166,3 +166,33 @@ Parse.Cloud.define("fixIosPushType", async (request) => {
     totalFound: results.length
   };
 });
+
+Parse.Cloud.define("addGlobalChannel", async (request) => {
+  if (!request.master) throw new Error("⛔ MasterKey krävs.");
+
+  const Installation = Parse.Object.extend("_Installation");
+  const query = new Parse.Query(Installation);
+  query.exists("deviceToken");
+  query.exists("installationId");
+  query.exists("GCMSenderId");
+  query.limit(1000);
+
+  const results = await query.find({ useMasterKey: true });
+  console.log(`🔍 Hittade ${results.length} installationer med token, ID och GCM.`);
+
+  let updated = 0;
+  for (const install of results) {
+    const channels = install.get("channels") || [];
+    if (!channels.includes("global")) {
+      channels.push("global");
+      install.set("channels", channels);
+      await install.save(null, { useMasterKey: true });
+      updated++;
+    }
+  }
+
+  return {
+    message: `✅ La till 'global' i ${updated} installationer.`,
+    totalFound: results.length
+  };
+});
