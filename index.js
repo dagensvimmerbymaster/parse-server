@@ -24,14 +24,13 @@ console.log('📦 APP_ID:', appId);
 console.log('📦 MASTER_KEY:', masterKey);
 console.log('🌍 SERVER_URL:', serverURL);
 
-// 🔐 Ladda push-certifikat (.p8)
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 if (!fs.existsSync(pushKeyPath)) {
   console.error('❌ APNs certifikat hittades inte:', pushKeyPath);
   process.exit(1);
 }
 
-// ➤ Enkel push-adapterkonfiguration utan optimering
+// 🔧 Push-adapter med stabil konfiguration
 const pushAdapter = new PushAdapter({
   android: {
     senderId: '9966393092',
@@ -45,7 +44,15 @@ const pushAdapter = new PushAdapter({
         teamId: '5S4Z656PBW'
       },
       topic: 'com.dagensvimmerbyab.DV',
-      production: true
+      production: true,
+      maxConnections: 10,
+      connectionTimeout: 2000,
+      timeout: 5000,
+      flushAt: 20,
+      flushInterval: 800,
+      shutdownGracePeriod: 500,
+      connectionRetryLimit: 3,
+      verbose: true
     }
   ]
 });
