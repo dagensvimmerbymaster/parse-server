@@ -48,10 +48,10 @@ const pushAdapter = new ParsePushAdapter({
 
       // ⚙️ Stabilitetsinställningar
       maxConnections: 20,            // fler samtidiga anslutningar
-      connectionRetryLimit: 3,       // försök igen vid fel
-      connectionTimeout: 2000,       // timeout per enhet (ms)
-      shutdownGracePeriod: 500,      // tid att stänga ner säkert
-      flushAt: 1,                   // skicka batch vid 50 pushar
+      connectionRetryLimit: 1,       // försök igen vid fel
+      connectionTimeout: 5000,       // timeout per enhet (ms)
+      shutdownGracePeriod: 1000,      // tid att stänga ner säkert
+      flushAt: 10,                   // skicka batch vid 50 pushar
       flushInterval: 1000,           // eller var 2 sek (ms)
       verbose: true                  // full loggning i Heroku
     }
