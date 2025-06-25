@@ -45,7 +45,7 @@ const pushAdapter = new ParsePushAdapter({ // ⬅️ Uppdaterad klass
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 3,
+      maxConnections: 10,
       verbose: true
     }
   ]
