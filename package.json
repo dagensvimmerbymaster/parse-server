@@ -14,14 +14,14 @@
     "@parse/push-adapter": "6.11.0"
   },
   "overrides": {
-    "@parse/push-adapter": "6.11.0"
+    "@parse/push-adapter": "6.11.0",
+    "@parse/node-apn": "5.1.0"
   },
   "resolutions": {
-    "@parse/push-adapter": "6.11.0"
+    "@parse/push-adapter": "6.11.0",
+    "@parse/node-apn": "5.1.0"
   },
   "engines": {
     "node": ">=18"
   }
 }
-
-
