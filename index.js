@@ -45,14 +45,7 @@ const pushAdapter = new PushAdapter({
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 10,
-      connectionTimeout: 2000,
-      timeout: 5000,
-      flushAt: 20,
-      flushInterval: 800,
-      shutdownGracePeriod: 500,
-      connectionRetryLimit: 3,
-      verbose: true
+      maxConnections: 3,
     }
   ]
 });
