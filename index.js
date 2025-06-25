@@ -47,7 +47,7 @@ const pushAdapter = new ParsePushAdapter({
       production: true,
 
       // ⚙️ Stabilitetsinställningar
-      maxConnections: 3,            // fler samtidiga anslutningar
+      maxConnections: 20,            // fler samtidiga anslutningar
       connectionRetryLimit: 3,       // försök igen vid fel
       connectionTimeout: 2000,       // timeout per enhet (ms)
       shutdownGracePeriod: 500,      // tid att stänga ner säkert
