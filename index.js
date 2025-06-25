@@ -5,7 +5,7 @@ const http = require('http');
 const { ParseServer } = require('parse-server');
 const path = require('path');
 const fs = require('fs');
-const { default: ParsePushAdapter } = require('@parse/push-adapter'); // ⬅️ Uppdaterad import
+const { default: ParsePushAdapter } = require('@parse/push-adapter');
 
 const app = express();
 const port = process.env.PORT || 1337;
@@ -31,7 +31,7 @@ if (!fs.existsSync(pushKeyPath)) {
   process.exit(1);
 }
 
-const pushAdapter = new ParsePushAdapter({ // ⬅️ Uppdaterad klass
+const pushAdapter = new ParsePushAdapter({
   android: {
     senderId: '9966393092',
     apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
@@ -45,8 +45,15 @@ const pushAdapter = new ParsePushAdapter({ // ⬅️ Uppdaterad klass
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 10,
-      verbose: true
+
+      // ⚙️ Stabilitetsinställningar
+      maxConnections: 10,            // fler samtidiga anslutningar
+      connectionRetryLimit: 3,       // försök igen vid fel
+      connectionTimeout: 3000,       // timeout per enhet (ms)
+      shutdownGracePeriod: 500,      // tid att stänga ner säkert
+      flushAt: 50,                   // skicka batch vid 50 pushar
+      flushInterval: 2000,           // eller var 2 sek (ms)
+      verbose: true                  // full loggning i Heroku
     }
   ]
 });
