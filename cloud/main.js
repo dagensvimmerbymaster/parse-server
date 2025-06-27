@@ -1,4 +1,4 @@
-// Modern Cloud Code for Parse Server v6+
+// Modern Cloud Code för Parse Server v6+
 
 Parse.Cloud.define("hello", async () => {
   return "Hello world!";
@@ -27,191 +27,82 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   const query = new Parse.Query(Installation);
   query.equalTo("installationId", installationId);
 
-  try {
-    let installation = await query.first({ useMasterKey: true });
+  let installation = await query.first({ useMasterKey: true });
 
-    if (!installation) {
-      installation = new Installation();
-      installation.set("installationId", installationId);
-    }
-
-    if (GCMSenderId !== undefined) installation.set("GCMSenderId", GCMSenderId);
-    if (deviceType !== undefined) installation.set("deviceType", deviceType);
-    if (appName !== undefined) installation.set("appName", appName);
-    if (appIdentifier !== undefined) installation.set("appIdentifier", appIdentifier);
-    if (parseVersion !== undefined) installation.set("parseVersion", parseVersion);
-    if (deviceToken !== undefined) installation.set("deviceToken", deviceToken);
-    if (timeZone !== undefined) installation.set("timeZone", timeZone);
-    if (localeIdentifier !== undefined) installation.set("localeIdentifier", localeIdentifier);
-    if (appVersion !== undefined) installation.set("appVersion", appVersion);
-
-    // ✅ Viktigt: sätt pushType beroende på enhet
-    if (deviceType === "android") {
-      installation.set("pushType", "gcm");
-    } else if (deviceType === "ios") {
-      installation.set("pushType", "apn");
-    }
-
-    // ✅ Automatiskt lägg till "global" i channels för vissa
-    if (
-      installation.get("deviceToken") &&
-      installation.get("installationId") &&
-      installation.get("pushType")
-    ) {
-      const channels = installation.get("channels") || [];
-      if (!channels.includes("global")) {
-        channels.push("global");
-        installation.set("channels", channels);
-      }
-    }
-
-    await installation.save(null, { useMasterKey: true });
-
-    console.log("✅ Installation uppdaterad:", installation.id);
-    return { success: true };
-  } catch (error) {
-    console.error("❌ UpdateInstallation error:", error);
-    throw new Error("Kunde inte spara installation: " + error.message);
+  if (!installation) {
+    installation = new Installation();
+    installation.set("installationId", installationId);
   }
+
+  if (GCMSenderId) installation.set("GCMSenderId", GCMSenderId);
+  if (deviceType) installation.set("deviceType", deviceType);
+  if (appName) installation.set("appName", appName);
+  if (appIdentifier) installation.set("appIdentifier", appIdentifier);
+  if (parseVersion) installation.set("parseVersion", parseVersion);
+  if (deviceToken) installation.set("deviceToken", deviceToken);
+  if (timeZone) installation.set("timeZone", timeZone);
+  if (localeIdentifier) installation.set("localeIdentifier", localeIdentifier);
+  if (appVersion) installation.set("appVersion", appVersion);
+
+  if (deviceType === "android") {
+    installation.set("pushType", "gcm");
+  } else if (deviceType === "ios") {
+    installation.set("pushType", "apn");
+  }
+
+  const channels = installation.get("channels") || [];
+  if (!channels.includes("global")) {
+    channels.push("global");
+    installation.set("channels", channels);
+  }
+
+  await installation.save(null, { useMasterKey: true });
+  return { success: true };
 });
 
-// ✅ Lista de senaste 100 installationerna
-Parse.Cloud.define("listInstallations", async (request) => {
-  if (!request.master) throw new Error("Unauthorized: MasterKey krävs.");
+// ✅ Skicka push-meddelande i batchar
+Parse.Cloud.define("sendPushInBatches", async (request) => {
+  const { message, title, where, batchSize = 500 } = request.params;
+
+  if (!request.master) throw new Error("⛔ MasterKey krävs.");
+  if (!message) throw new Error("⛔ 'message' krävs.");
 
   const query = new Parse.Query("_Installation");
-  query.limit(100);
-  query.descending("createdAt");
-  return await query.find({ useMasterKey: true });
-});
-
-// ✅ Flagga installationer utan deviceToken/pushType som invalid
-Parse.Cloud.define("flagInvalidInstallations", async (request) => {
-  if (!request.master) throw new Error("⛔ MasterKey krävs.");
-
-  const Installation = Parse.Object.extend("_Installation");
-  const query = new Parse.Query(Installation);
-  query.limit(1000);
-  query.doesNotExist("deviceToken");
-  query.doesNotExist("pushType");
-
-  const results = await query.find({ useMasterKey: true });
-  console.log(`🔍 Hittade ${results.length} utan deviceToken/pushType.`);
-
-  let updated = 0;
-  for (const install of results) {
-    if (!install.get("invalid")) {
-      install.set("invalid", true);
-      await install.save(null, { useMasterKey: true });
-      updated++;
+  if (where && typeof where === "object") {
+    for (const [key, value] of Object.entries(where)) {
+      query.equalTo(key, value);
     }
   }
+  query.exists("deviceToken");
+  query.exists("pushType");
 
-  return {
-    message: `✅ Markerade ${updated} som 'invalid'.`,
-    totalFound: results.length
-  };
-});
-
-// ✅ Analysfunktion av installationer
-Parse.Cloud.define("analyzeInstallations", async (request) => {
-  if (!request.master) throw new Error("⛔ MasterKey krävs.");
-
-  const Installation = Parse.Object.extend("_Installation");
-  const now = new Date();
-  const oneYearAgo = new Date(now);
-  oneYearAgo.setFullYear(now.getFullYear() - 1);
-
-  const countQuery = async (query) => await query.count({ useMasterKey: true });
-
-  const queries = {
-    total: new Parse.Query(Installation),
-    android: new Parse.Query(Installation).equalTo("deviceType", "android"),
-    ios: new Parse.Query(Installation).equalTo("deviceType", "ios"),
-    missingDeviceToken: new Parse.Query(Installation).doesNotExist("deviceToken"),
-    oldInstallations: new Parse.Query(Installation).lessThan("updatedAt", oneYearAgo)
-  };
-
-  const results = {};
-  for (const key in queries) {
-    results[key] = await countQuery(queries[key]);
-  }
-
-  console.log("📊 Analysresultat:", results);
-  return results;
-});
-
-// ✅ Fix: sätt pushType = 'apn' för iOS-installationer där det saknas
-Parse.Cloud.define("fixIosPushType", async (request) => {
-  if (!request.master) throw new Error("⛔ MasterKey krävs.");
-
-  const Installation = Parse.Object.extend("_Installation");
-  const query = new Parse.Query(Installation);
-  query.equalTo("deviceType", "ios");
-  query.doesNotExist("pushType");
-  query.limit(1000);
-
-  const results = await query.find({ useMasterKey: true });
-  console.log(`🔧 Hittade ${results.length} iOS-installationer utan pushType.`);
-
-  let updated = 0;
-  for (const install of results) {
-    install.set("pushType", "apn");
-    await install.save(null, { useMasterKey: true });
-    updated++;
-  }
-
-  return {
-    message: `✅ Uppdaterade ${updated} iOS-installationer med pushType = 'apn'.`,
-    totalFound: results.length
-  };
-});
-
-Parse.Cloud.define("addGlobalChannel", async (request) => {
-  if (!request.master) throw new Error("⛔ MasterKey krävs.");
-
-  const Installation = Parse.Object.extend("_Installation");
-  const batchSize = 1000;
+  const total = await query.count({ useMasterKey: true });
   let skip = 0;
-  let totalUpdated = 0;
-  let totalFound = 0;
+  let sent = 0;
 
-  while (true) {
-    const query = new Parse.Query(Installation);
-    query.exists("deviceToken");
-    query.exists("installationId");
-    query.exists("pushType");
-    query.skip(skip);
-    query.limit(batchSize);
+  while (skip < total) {
+    const batchQuery = query.clone();
+    batchQuery.skip(skip).limit(batchSize);
 
-    const results = await query.find({ useMasterKey: true });
-    if (results.length === 0) break;
+    const installations = await batchQuery.find({ useMasterKey: true });
+    const installationIds = installations.map(i => i.id);
 
-    totalFound += results.length;
-
-    for (const install of results) {
-      let channels = install.get("channels");
-
-      if (!Array.isArray(channels)) {
-        channels = [];
-      } else {
-        // Rensa bort icke-strängar
-        channels = channels.filter(c => typeof c === "string");
-      }
-
-      if (!channels.includes("global")) {
-        channels.push("global");
-        install.set("channels", channels);
-        await install.save(null, { useMasterKey: true });
-        totalUpdated++;
-      }
+    if (installationIds.length > 0) {
+      await Parse.Push.send({
+        where: new Parse.Query("_Installation").containedIn("objectId", installationIds),
+        data: {
+          alert: message,
+          title: title || "Meddelande",
+          badge: "Increment",
+          sound: "default"
+        }
+      }, { useMasterKey: true });
     }
 
+    sent += installationIds.length;
     skip += batchSize;
+    await new Promise(resolve => setTimeout(resolve, 100)); // kort paus mellan batchar
   }
 
-  return {
-    message: `✅ La till 'global' i ${totalUpdated} installationer.`,
-    totalFound
-  };
+  return { success: true, sent, total };
 });
