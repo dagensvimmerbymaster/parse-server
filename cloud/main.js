@@ -1,5 +1,6 @@
 // Modern Cloud Code för Parse Server v6+
 
+// Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
   return "Hello world!";
 });
@@ -60,36 +61,33 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   return { success: true };
 });
 
-// ✅ Skicka push-meddelande i batchar
+// ✅ Skicka push-meddelanden i batchar (stabil)
 Parse.Cloud.define("sendPushInBatches", async (request) => {
-  const { message, title, where, batchSize = 500 } = request.params;
+  const { message, title, where, batchSize = 500, pauseMs = 1000 } = request.params;
 
   if (!request.master) throw new Error("⛔ MasterKey krävs.");
   if (!message) throw new Error("⛔ 'message' krävs.");
 
   const query = new Parse.Query("_Installation");
+  query.exists("deviceToken");
+  query.equalTo("pushType", "apn"); // Justera vid behov för Android
   if (where && typeof where === "object") {
     for (const [key, value] of Object.entries(where)) {
       query.equalTo(key, value);
     }
   }
-  query.exists("deviceToken");
-  query.exists("pushType");
 
-  const total = await query.count({ useMasterKey: true });
-  let skip = 0;
+  const installations = await query.find({ useMasterKey: true });
+  const total = installations.length;
   let sent = 0;
 
-  while (skip < total) {
-    const batchQuery = query.clone();
-    batchQuery.skip(skip).limit(batchSize);
+  for (let i = 0; i < total; i += batchSize) {
+    const batch = installations.slice(i, i + batchSize);
+    const tokens = batch.map(i => i.get("deviceToken")).filter(Boolean);
 
-    const installations = await batchQuery.find({ useMasterKey: true });
-    const installationIds = installations.map(i => i.id);
-
-    if (installationIds.length > 0) {
+    if (tokens.length > 0) {
       await Parse.Push.send({
-        where: new Parse.Query("_Installation").containedIn("objectId", installationIds),
+        where: new Parse.Query("_Installation").containedIn("deviceToken", tokens),
         data: {
           alert: message,
           title: title || "Meddelande",
@@ -99,9 +97,9 @@ Parse.Cloud.define("sendPushInBatches", async (request) => {
       }, { useMasterKey: true });
     }
 
-    sent += installationIds.length;
-    skip += batchSize;
-    await new Promise(resolve => setTimeout(resolve, 100)); // kort paus mellan batchar
+    sent += tokens.length;
+    console.log(`📦 Skickat batch ${i / batchSize + 1}: ${tokens.length} tokens`);
+    await new Promise(resolve => setTimeout(resolve, pauseMs));
   }
 
   return { success: true, sent, total };
