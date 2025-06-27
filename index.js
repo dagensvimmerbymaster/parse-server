@@ -30,7 +30,6 @@ if (!fs.existsSync(pushKeyPath)) {
   process.exit(1);
 }
 
-// 🔧 Push-adapter med stabil konfiguration
 const pushAdapter = new PushAdapter({
   android: {
     senderId: '9966393092',
@@ -45,7 +44,7 @@ const pushAdapter = new PushAdapter({
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 3,
+      maxConnections: 3
     }
   ]
 });
