@@ -11,22 +11,22 @@ const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 
-const databaseUri = process.env.DATABASE_URI || process.env.MONGODB_URI;
-if (!databaseUri) {
-  console.warn('⚠️ DATABASE_URI not specified, använder localhost.');
+const {
+  APP_ID,
+  MASTER_KEY,
+  SERVER_URL,
+  PUBLIC_SERVER_URL,
+  MONGODB_URI
+} = process.env;
+
+if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
+  console.error("❌ En eller flera viktiga miljövariabler saknas.");
+  process.exit(1);
 }
-
-const appId = process.env.APP_ID || 'id-FAoIJ78ValGFwYdBWfxch7Fm';
-const masterKey = process.env.MASTER_KEY || 'key-8uNA4ZslCgVoqFeuy5epBntj';
-const serverURL = process.env.SERVER_URL || 'https://dagensvimmerby.herokuapp.com/parse';
-
-console.log('📦 APP_ID:', appId);
-console.log('📦 MASTER_KEY:', masterKey);
-console.log('🌍 SERVER_URL:', serverURL);
 
 const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
 if (!fs.existsSync(pushKeyPath)) {
-  console.error('❌ APNs certifikat hittades inte:', pushKeyPath);
+  console.error('❌ APNs-certifikat saknas:', pushKeyPath);
   process.exit(1);
 }
 
@@ -57,7 +57,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Info-endpoint för Dashboard
+// Info-endpoint för Parse Dashboard
 app.get(`${mountPath}/serverInfo`, (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
@@ -79,18 +79,14 @@ app.get('/', (_, res) => {
   res.status(200).send('✅ Parse Server uppe och kör!');
 });
 
-app.get('/test', (_, res) => {
-  res.sendFile(path.join(__dirname, 'public/test.html'));
-});
-
 async function startServer() {
   const parseServer = new ParseServer({
-    databaseURI: databaseUri,
+    databaseURI: MONGODB_URI,
     cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
-    appId,
-    masterKey,
-    serverURL,
-    publicServerURL: serverURL,
+    appId: APP_ID,
+    masterKey: MASTER_KEY,
+    serverURL: SERVER_URL,
+    publicServerURL: PUBLIC_SERVER_URL,
     push: { adapter: pushAdapter },
     masterKeyIps: ['0.0.0.0/0', '::/0'],
     allowClientClassCreation: true,
@@ -105,7 +101,7 @@ async function startServer() {
 
   const httpServer = http.createServer(app);
   httpServer.listen(port, () => {
-    console.log(`🚀 Server running at http://localhost:${port}${mountPath}`);
+    console.log(`🚀 Servern körs på http://localhost:${port}${mountPath}`);
   });
 
   ParseServer.createLiveQueryServer(httpServer);

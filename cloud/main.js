@@ -61,23 +61,24 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   return { success: true };
 });
 
-// ✅ Skicka push-meddelanden i batchar (stabil)
+// ✅ Skicka push-meddelanden i batchar (iOS + Android, med valfri URL)
 Parse.Cloud.define("sendPushInBatches", async (request) => {
-  const { message, title, where, batchSize = 500, pauseMs = 1000 } = request.params;
+  const { message, title, where, batchSize = 500, pauseMs = 1000, url } = request.params;
 
   if (!request.master) throw new Error("⛔ MasterKey krävs.");
   if (!message) throw new Error("⛔ 'message' krävs.");
 
-  const query = new Parse.Query("_Installation");
-  query.exists("deviceToken");
-  query.equalTo("pushType", "apn"); // Justera vid behov för Android
+  const baseQuery = new Parse.Query("_Installation");
+  baseQuery.exists("deviceToken");
+  baseQuery.exists("pushType");
+
   if (where && typeof where === "object") {
     for (const [key, value] of Object.entries(where)) {
-      query.equalTo(key, value);
+      baseQuery.equalTo(key, value);
     }
   }
 
-  const installations = await query.find({ useMasterKey: true });
+  const installations = await baseQuery.find({ useMasterKey: true });
   const total = installations.length;
   let sent = 0;
 
@@ -92,7 +93,8 @@ Parse.Cloud.define("sendPushInBatches", async (request) => {
           alert: message,
           title: title || "Meddelande",
           badge: "Increment",
-          sound: "default"
+          sound: "default",
+          ...(url && { url })
         }
       }, { useMasterKey: true });
     }
