@@ -15,11 +15,12 @@ const {
   MASTER_KEY,
   SERVER_URL,
   PUBLIC_SERVER_URL,
-  MONGODB_URI
+  MONGODB_URI,
+  FCM_SERVER_KEY // Läser Firebase server key härifrån
 } = process.env;
 
-if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
-  console.error("❌ En eller flera viktiga miljövariabler saknas.");
+if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI || !FCM_SERVER_KEY) {
+  console.error("❌ En eller flera viktiga miljövariabler saknas. Kontrollera APP_ID, MASTER_KEY, SERVER_URL, MONGODB_URI och FCM_SERVER_KEY.");
   process.exit(1);
 }
 
@@ -30,6 +31,7 @@ if (!fs.existsSync(pushKeyPath)) {
   process.exit(1);
 }
 
+// CORS för Parse Dashboard
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key');
@@ -37,6 +39,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Info-endpoint för Parse Dashboard
 app.get(`${mountPath}/serverInfo`, (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
@@ -67,10 +70,10 @@ async function startServer() {
     serverURL: SERVER_URL,
     publicServerURL: PUBLIC_SERVER_URL,
 
-    // ✅ NY KORREKT PUSH-KONFIGURATION
+    // Push-konfiguration med nyckel från miljövariabel
     push: {
       android: {
-        apiKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr'
+        apiKey: FCM_SERVER_KEY
       },
       ios: {
         token: {
