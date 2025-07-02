@@ -4,22 +4,12 @@
   "description": "Upgraded Parse Server example",
   "main": "index.js",
   "scripts": {
-    "preinstall": "npx npm-force-resolutions",
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "parse": "^3.4.5",
-    "parse-server": "6.5.11",
-    "@parse/push-adapter": "4.1.0"
-  },
-  "overrides": {
-    "@parse/push-adapter": "4.1.0",
-    "@parse/node-apn": "5.1.3"
-  },
-  "resolutions": {
-    "@parse/push-adapter": "4.1.0",
-    "@parse/node-apn": "5.1.3"
+    "parse-server": "6.5.11"
   },
   "engines": {
     "node": ">=20"
