@@ -24,7 +24,8 @@ if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
   process.exit(1);
 }
 
-const pushKeyPath = path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8');
+// ✅ Robust sökväg till .p8-filen
+const pushKeyPath = path.join(__dirname, 'certificates', 'AuthKey_AT4486F4YN.p8');
 if (!fs.existsSync(pushKeyPath)) {
   console.error('❌ APNs-certifikat saknas:', pushKeyPath);
   process.exit(1);

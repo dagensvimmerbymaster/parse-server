@@ -1,5 +1,8 @@
 // Modern Cloud Code för Parse Server v6+
 
+const fs = require("fs");
+const path = require("path");
+
 // Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
   return "Hello world!";
@@ -61,48 +64,71 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   return { success: true };
 });
 
-// ✅ Skicka push-meddelanden i batchar (iOS + Android, med valfri URL)
-Parse.Cloud.define("sendPushInBatches", async (request) => {
-  const { message, title, where, batchSize = 500, pauseMs = 1000, url } = request.params;
+// ✅ Skicka push till ALLA installationer (utan batch)
+Parse.Cloud.define("sendPushToAll", async (request) => {
+  const { message, title, url } = request.params;
 
   if (!request.master) throw new Error("⛔ MasterKey krävs.");
   if (!message) throw new Error("⛔ 'message' krävs.");
 
-  const baseQuery = new Parse.Query("_Installation");
-  baseQuery.exists("deviceToken");
-  baseQuery.exists("pushType");
+  const query = new Parse.Query("_Installation");
+  query.exists("deviceToken");
+  query.exists("pushType");
 
-  if (where && typeof where === "object") {
-    for (const [key, value] of Object.entries(where)) {
-      baseQuery.equalTo(key, value);
+  await Parse.Push.send({
+    where: query,
+    data: {
+      alert: message,
+      title: title || "Meddelande",
+      badge: "Increment",
+      sound: "default",
+      url: url || null
     }
+  }, { useMasterKey: true });
+
+  return { success: true };
+});
+
+// 🔧 Direkt push-test till specifik enhet via APNs
+Parse.Cloud.define("directApnPushTest", async (request) => {
+  if (!request.master) throw new Error("⛔ MasterKey krävs.");
+
+  const { deviceToken, alert } = request.params;
+  if (!deviceToken || !alert) throw new Error("⛔ Både deviceToken och alert krävs.");
+
+  const apn = require("@parse/node-apn");
+
+  // ✅ Robust sökväg till .p8-filen
+  const keyPath = path.resolve(__dirname, "../certificates/AuthKey_AT4486F4YN.p8");
+  const key = fs.readFileSync(keyPath);
+
+  const options = {
+    token: {
+      key,
+      keyId: "AT4486F4YN",
+      teamId: "5S4Z656PBW"
+    },
+    production: true,
+    connectionRetryLimit: 5,
+    connectionTimeout: 30000
+  };
+
+  const apnProvider = new apn.Provider(options);
+
+  const note = new apn.Notification();
+  note.alert = alert;
+  note.sound = "default";
+  note.topic = "com.dagensvimmerbyab.DV";
+  note.payload = { source: "manual test" };
+
+  try {
+    const result = await apnProvider.send(note, deviceToken);
+    console.log("📨 Push-resultat:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ APN-testfel:", error);
+    throw error;
+  } finally {
+    apnProvider.shutdown();
   }
-
-  const installations = await baseQuery.find({ useMasterKey: true });
-  const total = installations.length;
-  let sent = 0;
-
-  for (let i = 0; i < total; i += batchSize) {
-    const batch = installations.slice(i, i + batchSize);
-    const tokens = batch.map(i => i.get("deviceToken")).filter(Boolean);
-
-    if (tokens.length > 0) {
-      await Parse.Push.send({
-        where: new Parse.Query("_Installation").containedIn("deviceToken", tokens),
-        data: {
-          alert: message,
-          title: title || "Meddelande",
-          badge: "Increment",
-          sound: "default",
-          ...(url && { url })
-        }
-      }, { useMasterKey: true });
-    }
-
-    sent += tokens.length;
-    console.log(`📦 Skickat batch ${i / batchSize + 1}: ${tokens.length} tokens`);
-    await new Promise(resolve => setTimeout(resolve, pauseMs));
-  }
-
-  return { success: true, sent, total };
 });
