@@ -6,27 +6,45 @@ Parse.Cloud.define("hello", async () => {
 // ✅ beforeSave för _Installation – logga inkommande objekt & sätt pushType/channels
 Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
   try {
-    console.log('📥 Incoming _Installation object:', JSON.stringify(req.object.toJSON(), null, 2));
+    const obj = req.object;
+    console.log('📥 Incoming _Installation object:\n', JSON.stringify(obj.toJSON(), null, 2));
+
+    // Kontrollera om original finns (vid update)
     if (req.original) {
-      console.log('📦 Original object:', JSON.stringify(req.original.toJSON(), null, 2));
+      console.log('📦 Original object:\n', JSON.stringify(req.original.toJSON(), null, 2));
     } else {
       console.log('🆕 Ny installation (ingen original finns)');
     }
 
-    const deviceType = req.object.get('deviceType');
-    if (deviceType === 'android') {
-      req.object.set('pushType', 'fcm');
-    } else if (deviceType === 'ios') {
-      req.object.set('pushType', 'apn');
+    // deviceType
+    const deviceType = obj.get('deviceType');
+    if (typeof deviceType !== 'string') {
+      throw new Error("❌ Ogiltig eller saknad 'deviceType'");
     }
 
-    const channels = req.object.get('channels') || [];
+    // sätt pushType
+    if (deviceType === 'android') {
+      obj.set('pushType', 'fcm');
+    } else if (deviceType === 'ios') {
+      obj.set('pushType', 'apn');
+    } else {
+      throw new Error("❌ Okänt 'deviceType': " + deviceType);
+    }
+
+    // channels
+    let channels = obj.get('channels');
+    if (channels && !Array.isArray(channels)) {
+      console.warn('⚠️ Konverterar channels till array:', channels);
+      channels = [channels];
+    }
+    channels = channels || [];
     if (!channels.includes('global')) {
       channels.push('global');
-      req.object.set('channels', channels);
+      obj.set('channels', channels);
     }
+
   } catch (err) {
-    console.error('❌ beforeSave error:', err);
+    console.error('❌ beforeSave _Installation error:', err);
     throw err;
   }
 });
@@ -48,7 +66,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     } = request.params;
 
     if (!installationId || !deviceType) {
-      throw new Error("installationId och deviceType krävs.");
+      throw new Error("❌ Både installationId och deviceType krävs.");
     }
 
     const Installation = Parse.Object.extend("_Installation");
@@ -56,13 +74,10 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     query.equalTo("installationId", installationId);
 
     let installation = await query.first({ useMasterKey: true });
-
     const isNew = !installation;
-    if (isNew) {
-      installation = new Installation();
-      installation.set("installationId", installationId);
-    }
+    if (isNew) installation = new Installation();
 
+    installation.set("installationId", installationId);
     if (GCMSenderId) installation.set("GCMSenderId", GCMSenderId);
     if (deviceType) installation.set("deviceType", deviceType);
     if (appName) installation.set("appName", appName);
@@ -72,7 +87,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     if (localeIdentifier) installation.set("localeIdentifier", localeIdentifier);
     if (appVersion) installation.set("appVersion", appVersion);
 
-    // Endast sätt deviceToken om det är nytt eller oförändrat
+    // Endast sätt deviceToken om det är nytt eller förändrat
     if (deviceToken && (isNew || installation.get("deviceToken") !== deviceToken)) {
       installation.set("deviceToken", deviceToken);
     }
@@ -83,7 +98,12 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
       installation.set("pushType", "apn");
     }
 
-    const channels = installation.get("channels") || [];
+    let channels = installation.get("channels");
+    if (channels && !Array.isArray(channels)) {
+      console.warn('⚠️ Konverterar channels till array i UpdateInstallation:', channels);
+      channels = [channels];
+    }
+    channels = channels || [];
     if (!channels.includes("global")) {
       channels.push("global");
       installation.set("channels", channels);
