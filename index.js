@@ -4,7 +4,6 @@ import { ParsePushAdapter } from '@parse/push-adapter';
 
 console.log('✅ Initierar Parse Server med push-stöd...');
 
-// 🛡️ 1. Läs och parsa FCM-nyckeln
 let fcmServiceAccount;
 try {
   fcmServiceAccount = JSON.parse(process.env.FCM_SERVICE_ACCOUNT);
@@ -15,11 +14,11 @@ try {
   process.exit(1);
 }
 
-// 🛡️ 2. Initiera push-adapter (utan senderId tillfälligt)
 let pushAdapter;
 try {
   pushAdapter = new ParsePushAdapter({
     android: {
+      senderId: process.env.FCM_SENDER_ID, // 👈 Viktig fix!
       serviceAccount: fcmServiceAccount,
     },
     ios: {
@@ -37,7 +36,6 @@ try {
   process.exit(1);
 }
 
-// 🛠️ 3. Starta Parse Server
 const api = new ParseServer({
   databaseURI: process.env.MONGODB_URI,
   cloud: './cloud/main.js',
@@ -49,7 +47,6 @@ const api = new ParseServer({
   allowClientClassCreation: false,
 });
 
-// 🚀 4. Starta Express
 const app = express();
 app.use('/parse', api.app);
 
