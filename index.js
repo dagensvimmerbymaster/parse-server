@@ -1,4 +1,4 @@
-console.log('✅ Initierar Parse Server med Firebase Cloud Messaging och APNs...');
+console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
 
 const express = require('express');
 const http = require('http');
@@ -16,22 +16,24 @@ const {
   SERVER_URL,
   PUBLIC_SERVER_URL,
   MONGODB_URI,
-  FCM_SERVER_KEY // Läser Firebase server key härifrån
+  FCM_API_KEY,
+  APN_KEY_PATH,
+  APN_KEY_ID,
+  APN_TEAM_ID,
+  APN_TOPIC
 } = process.env;
 
-if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI || !FCM_SERVER_KEY) {
-  console.error("❌ En eller flera viktiga miljövariabler saknas. Kontrollera APP_ID, MASTER_KEY, SERVER_URL, MONGODB_URI och FCM_SERVER_KEY.");
+if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
+  console.error("❌ En eller flera viktiga miljövariabler saknas (APP_ID, MASTER_KEY, SERVER_URL, MONGODB_URI).");
   process.exit(1);
 }
 
-// ✅ APNs-certifikat för iOS
-const pushKeyPath = path.join(__dirname, 'certificates', 'AuthKey_AT4486F4YN.p8');
-if (!fs.existsSync(pushKeyPath)) {
-  console.error('❌ APNs-certifikat saknas:', pushKeyPath);
+// Kontrollera APNs-nyckelfil
+if (!APN_KEY_PATH || !fs.existsSync(APN_KEY_PATH)) {
+  console.error('❌ APNs-certifikat saknas eller sökvägen är felaktig:', APN_KEY_PATH);
   process.exit(1);
 }
 
-// CORS för Parse Dashboard
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key');
@@ -39,7 +41,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Info-endpoint för Parse Dashboard
 app.get(`${mountPath}/serverInfo`, (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
@@ -70,20 +71,21 @@ async function startServer() {
     serverURL: SERVER_URL,
     publicServerURL: PUBLIC_SERVER_URL,
 
-    // Push-konfiguration med nyckel från miljövariabel
     push: {
       android: {
-        apiKey: FCM_SERVER_KEY
+        apiKey: FCM_API_KEY
       },
-      ios: {
-        token: {
-          key: fs.readFileSync(pushKeyPath),
-          keyId: 'AT4486F4YN',
-          teamId: '5S4Z656PBW'
-        },
-        topic: 'com.dagensvimmerbyab.DV',
-        production: true
-      }
+      ios: [
+        {
+          token: {
+            key: fs.readFileSync(APN_KEY_PATH),
+            keyId: APN_KEY_ID,
+            teamId: APN_TEAM_ID,
+          },
+          topic: APN_TOPIC,
+          production: true,
+        }
+      ]
     },
 
     masterKeyIps: ['0.0.0.0/0', '::/0'],
