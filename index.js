@@ -7,9 +7,28 @@ console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...'
 
 const app = express();
 const port = process.env.PORT || 1337;
+const mountPath = process.env.PARSE_MOUNT || '/parse';
 
-// Kontroll: FCM måste finnas
-if (!process.env.FCM_SERVICE_ACCOUNT) {
+// Kontrollera miljövariabler
+const {
+  APP_ID,
+  MASTER_KEY,
+  SERVER_URL,
+  PUBLIC_SERVER_URL,
+  FCM_SENDER_ID,
+  FCM_SERVICE_ACCOUNT,
+  APN_KEY_ID,
+  APN_TEAM_ID,
+} = process.env;
+
+const DATABASE_URI = process.env.DATABASE_URI || process.env.MONGODB_URI;
+
+if (!APP_ID || !MASTER_KEY || !SERVER_URL || !DATABASE_URI) {
+  console.error('❌ En eller flera viktiga miljövariabler saknas (APP_ID, MASTER_KEY, SERVER_URL, DATABASE_URI).');
+  process.exit(1);
+}
+
+if (!FCM_SERVICE_ACCOUNT) {
   console.error('❌ Miljövariabeln FCM_SERVICE_ACCOUNT saknas!');
   process.exit(1);
 }
@@ -17,17 +36,17 @@ if (!process.env.FCM_SERVICE_ACCOUNT) {
 // Parsea FCM JSON
 let fcm;
 try {
-  fcm = JSON.parse(process.env.FCM_SERVICE_ACCOUNT);
-  console.log('✅ FCM_SERVICE_ACCOUNT parsed (type: service_account )');
+  fcm = JSON.parse(FCM_SERVICE_ACCOUNT);
+  console.log(`✅ FCM_SERVICE_ACCOUNT parsed (type: ${fcm.type})`);
 } catch (err) {
   console.error('❌ Fel vid parsing av FCM_SERVICE_ACCOUNT:', err);
   process.exit(1);
 }
 
-/* ----- Push-konfiguration ----- */
+// Push-konfiguration
 const push = {
   android: {
-    senderId: process.env.FCM_SENDER_ID,
+    senderId: FCM_SENDER_ID,
     serviceAccount: fcm,
     type: 'fcm',
   },
@@ -35,8 +54,8 @@ const push = {
     {
       token: {
         key: fs.readFileSync('./certificates/AuthKey_AT4486F4YN.p8'),
-        keyId: 'AT4486F4YN',
-        teamId: '5S4Z656PBW',
+        keyId: APN_KEY_ID,
+        teamId: APN_TEAM_ID,
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: false,
@@ -44,32 +63,38 @@ const push = {
   ],
 };
 
-/* ----- Starta server ----- */
-async function startServer() {
-  const parseServer = new ParseServer({
-    databaseURI: process.env.DATABASE_URI,
-    cloud: './cloud/main.js',
-    appId: process.env.APP_ID,
-    masterKey: process.env.MASTER_KEY,
-    serverURL: process.env.SERVER_URL,
-    publicServerURL: process.env.PUBLIC_SERVER_URL,
-    push,
-    allowClientClassCreation: false,
-  });
-
-  await parseServer.start();
-
-  app.use('/parse', parseServer.app);
-
-  // Health endpoint
-  app.get('/parse/health', (_, res) => res.json({ status: 'ok' }));
-
-  const httpServer = http.createServer(app);
-  httpServer.listen(port, () => {
-    console.log(`🚀 Parse Server körs på port ${port}`);
-  });
-}
-
-startServer().catch((err) => {
-  console.error('❌ Fel vid serverstart:', err);
+const parseServer = new ParseServer({
+  databaseURI: DATABASE_URI,
+  cloud: './cloud/main.js',
+  appId: APP_ID,
+  masterKey: MASTER_KEY,
+  serverURL: SERVER_URL,
+  publicServerURL: PUBLIC_SERVER_URL,
+  push,
+  allowClientClassCreation: false,
 });
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  next();
+});
+
+app.use(mountPath, parseServer.app);
+app.use('/public', express.static('public'));
+
+app.get('/', (_, res) => {
+  res.status(200).send('✅ Parse Server uppe och kör!');
+});
+
+app.get(`${mountPath}/health`, (_, res) => res.json({ status: 'ok' }));
+
+// Starta servern
+const httpServer = http.createServer(app);
+httpServer.listen(port, () => {
+  console.log(`🚀 Parse Server körs på http://localhost:${port}${mountPath}`);
+});
+
+// Om du använder LiveQuery (annars kan du ta bort den här raden)
+ParseServer.createLiveQueryServer(httpServer);
