@@ -16,6 +16,7 @@ const {
   SERVER_URL,
   PUBLIC_SERVER_URL,
   MONGODB_URI,
+  FCM_SENDER_ID,
   APN_KEY_PATH,
   APN_KEY_ID,
   APN_TEAM_ID,
@@ -31,6 +32,19 @@ if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
 // Kontrollera APNs-nyckelfil
 if (!APN_KEY_PATH || !fs.existsSync(APN_KEY_PATH)) {
   console.error('❌ APNs-certifikat saknas eller sökvägen är felaktig:', APN_KEY_PATH);
+  process.exit(1);
+}
+
+// Kontrollera FCM Sender ID
+if (!FCM_SENDER_ID) {
+  console.error('❌ Miljövariabeln FCM_SENDER_ID saknas!');
+  process.exit(1);
+}
+
+// FCM service account JSON-fil (ligger i ./certificates/)
+const FCM_SERVICE_ACCOUNT_PATH = path.join(__dirname, 'certificates', 'dagensvimmerby-android-69b66-d92c3490c40f.json');
+if (!fs.existsSync(FCM_SERVICE_ACCOUNT_PATH)) {
+  console.error('❌ FCM service account JSON saknas:', FCM_SERVICE_ACCOUNT_PATH);
   process.exit(1);
 }
 
@@ -73,8 +87,8 @@ async function startServer() {
 
     push: {
       android: {
-        serverKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr',
-        senderId: '9966393092'
+        senderId: FCM_SENDER_ID,
+        serviceAccount: require(FCM_SERVICE_ACCOUNT_PATH)
       },
       ios: [
         {
