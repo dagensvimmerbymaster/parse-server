@@ -16,14 +16,15 @@ const {
   SERVER_URL,
   PUBLIC_SERVER_URL,
   MONGODB_URI,
-  FCM_SERVICE_ACCOUNT,
-  FCM_SENDER_ID,
+  FCM_SERVICE_ACCOUNT,   // Hela JSON som sträng
+  FCM_SENDER_ID,         // Din Firebase Sender ID (t.ex. 9966393092)
   APN_KEY_PATH,
   APN_KEY_ID,
   APN_TEAM_ID,
   APN_TOPIC
 } = process.env;
 
+// Kontrollera nödvändiga miljövariabler
 if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
   console.error("❌ En eller flera viktiga miljövariabler saknas (APP_ID, MASTER_KEY, SERVER_URL, MONGODB_URI).");
   process.exit(1);
@@ -44,12 +45,17 @@ if (!FCM_SENDER_ID) {
   process.exit(1);
 }
 
+// Skriv ut FCM-service account JSON till temporär fil
 const fcmKeyPath = path.join(__dirname, 'temp-fcm-service-account.json');
+fs.writeFileSync(fcmKeyPath, FCM_SERVICE_ACCOUNT);
+
+// Kontrollera att filen är läsbar och logga en del av innehållet
 try {
-  const serviceAccountObj = JSON.parse(FCM_SERVICE_ACCOUNT);
-  fs.writeFileSync(fcmKeyPath, JSON.stringify(serviceAccountObj));
-} catch (e) {
-  console.error('❌ Fel vid läsning eller skrivning av FCM_SERVICE_ACCOUNT:', e);
+  const content = fs.readFileSync(fcmKeyPath, 'utf-8');
+  console.log("✅ FCM service account fil sparad på:", fcmKeyPath);
+  console.log("✅ FCM service account filinnehåll (första 200 tecken):", content.substring(0, 200));
+} catch (err) {
+  console.error("❌ Kunde inte läsa FCM service account fil:", err);
   process.exit(1);
 }
 
@@ -116,9 +122,6 @@ async function startServer() {
   });
 
   await parseServer.start();
-
-  // Ta bort temp-filen efter användning
-  fs.unlinkSync(fcmKeyPath);
 
   app.use(mountPath, parseServer.app);
 
