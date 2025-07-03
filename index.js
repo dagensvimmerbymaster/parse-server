@@ -4,33 +4,40 @@ import { ParsePushAdapter } from '@parse/push-adapter';
 
 console.log('✅ Initierar Parse Server med push-stöd...');
 
-// FCM-konfiguration
+// 🛡️ 1. Läs och parsa FCM-nyckeln
 let fcmServiceAccount;
 try {
   fcmServiceAccount = JSON.parse(process.env.FCM_SERVICE_ACCOUNT);
-  console.log('✅ FCM_SERVICE_ACCOUNT JSON parsed OK');
+  console.log('✅ FCM_SERVICE_ACCOUNT parsed OK');
+  console.log('🔑 FCM Key type:', fcmServiceAccount.type);
 } catch (e) {
   console.error('❌ FCM_SERVICE_ACCOUNT kunde inte parsas:', e);
   process.exit(1);
 }
 
-// Push-adapter
-const pushAdapter = new ParsePushAdapter({
-  android: {
-    senderId: process.env.FCM_SENDER_ID,
-    serviceAccount: fcmServiceAccount,
-  },
-  ios: {
-    token: {
-      key: process.env.APN_KEY_PATH,
-      keyId: process.env.APN_KEY_ID,
-      teamId: process.env.APN_TEAM_ID,
+// 🛡️ 2. Initiera push-adapter (utan senderId tillfälligt)
+let pushAdapter;
+try {
+  pushAdapter = new ParsePushAdapter({
+    android: {
+      serviceAccount: fcmServiceAccount,
     },
-    topic: process.env.APN_TOPIC,
-  },
-});
+    ios: {
+      token: {
+        key: process.env.APN_KEY_PATH,
+        keyId: process.env.APN_KEY_ID,
+        teamId: process.env.APN_TEAM_ID,
+      },
+      topic: process.env.APN_TOPIC,
+    },
+  });
+  console.log('✅ PushAdapter initierad');
+} catch (err) {
+  console.error('❌ Fel vid initiering av PushAdapter:', err);
+  process.exit(1);
+}
 
-// Skapa Parse Server
+// 🛠️ 3. Starta Parse Server
 const api = new ParseServer({
   databaseURI: process.env.MONGODB_URI,
   cloud: './cloud/main.js',
@@ -42,11 +49,10 @@ const api = new ParseServer({
   allowClientClassCreation: false,
 });
 
-// Express-app
+// 🚀 4. Starta Express
 const app = express();
 app.use('/parse', api.app);
 
-// Starta servern
 const port = process.env.PORT || 1337;
 app.listen(port, () => {
   console.log(`✅ Parse Server kör på port ${port}`);
