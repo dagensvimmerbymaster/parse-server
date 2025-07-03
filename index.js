@@ -45,7 +45,7 @@ const push = {
 // ----- Skapa ParseServer-instans -----
 const parseServer = new ParseServer({
   databaseURI: process.env.MONGODB_URI,
-  cloud: path.resolve('./main.js'), // OBS: rätt sökväg
+  cloud: path.resolve('./main.js'),
   appId: process.env.APP_ID,
   masterKey: process.env.MASTER_KEY,
   serverURL: process.env.SERVER_URL,
@@ -55,6 +55,8 @@ const parseServer = new ParseServer({
   liveQuery: {
     classNames: ['Posts', 'Comments'],
   },
+  logLevel: 'info',
+  verbose: true,
 });
 
 // ----- Middleware: CORS -----
@@ -68,7 +70,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ----- /serverInfo endpoint (för t.ex. Parse Dashboard) -----
+// ----- /serverInfo endpoint -----
 const serverInfoHandler = (req, res) => {
   return res.json({
     parseServerVersion: ParseServer.version,
@@ -83,11 +85,10 @@ const serverInfoHandler = (req, res) => {
     },
   });
 };
-
 app.get(`${mountPath}/serverInfo`, serverInfoHandler);
 app.post(`${mountPath}/serverInfo`, serverInfoHandler);
 
-// ----- Health-check (måste sättas innan Parse mountas) -----
+// ----- Health-check endpoint -----
 app.get(`${mountPath}/health`, (_, res) => {
   res.status(200).json({ status: 'ok' });
 });
@@ -103,3 +104,11 @@ httpServer.listen(port, () => {
 
 // ----- Starta LiveQuery Server -----
 ParseServer.createLiveQueryServer(httpServer);
+
+// ----- Global felhantering -----
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🧨 Ohanterat Promise-fel:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('🔥 Ohanterat fel:', err);
+});
