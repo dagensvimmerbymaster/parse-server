@@ -1,17 +1,19 @@
 import express from 'express';
-import http from 'http';
+import { createServer } from 'http';
 import { ParseServer } from 'parse-server';
-import { ParsePushAdapter } from '@parse/push-adapter';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// __dirname i ES-moduler
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
+
 const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
-
-console.log('✅ Initierar Parse Server med push-stöd...');
 
 const {
   APP_ID,
@@ -20,67 +22,50 @@ const {
   PUBLIC_SERVER_URL,
   DATABASE_URI,
   FCM_SERVICE_ACCOUNT,
-  APN_KEY_PATH,
-  APN_KEY_ID,
-  APN_TEAM_ID,
-  APN_TOPIC
 } = process.env;
 
-// Kontrollera att nödvändiga miljövariabler finns
+// Kontrollera miljövariabler
 if (!APP_ID || !MASTER_KEY || !SERVER_URL || !DATABASE_URI) {
-  console.error("❌ En eller flera viktiga miljövariabler saknas.");
+  console.error("❌ En eller flera viktiga miljövariabler saknas (APP_ID, MASTER_KEY, SERVER_URL, DATABASE_URI).");
   process.exit(1);
 }
 
 if (!FCM_SERVICE_ACCOUNT) {
-  console.error('❌ FCM_SERVICE_ACCOUNT saknas!');
+  console.error('❌ Miljövariabeln FCM_SERVICE_ACCOUNT saknas!');
   process.exit(1);
 }
 
-let fcmServiceAccount;
+// Parsea FCM-tjänstnyckel
+let fcm;
 try {
-  fcmServiceAccount = JSON.parse(FCM_SERVICE_ACCOUNT);
+  fcm = JSON.parse(FCM_SERVICE_ACCOUNT);
   console.log('✅ FCM_SERVICE_ACCOUNT parsed (type: service_account )');
 } catch (err) {
   console.error('❌ Fel vid parsing av FCM_SERVICE_ACCOUNT:', err);
   process.exit(1);
 }
 
-if (!APN_KEY_PATH || !fs.existsSync(APN_KEY_PATH)) {
-  console.error('❌ APNs-certifikat saknas eller sökvägen är felaktig:', APN_KEY_PATH);
-  process.exit(1);
-}
-
-const pushAdapter = new ParsePushAdapter({
+// Push-konfiguration
+const push = {
   android: {
-    serviceAccount: fcmServiceAccount,
+    senderId: process.env.FCM_SENDER_ID,
+    serviceAccount: fcm,
+    type: 'fcm',
   },
-  ios: [{
-    token: {
-      key: fs.readFileSync(APN_KEY_PATH),
-      keyId: APN_KEY_ID,
-      teamId: APN_TEAM_ID
+  ios: [
+    {
+      token: {
+        key: fs.readFileSync('./certificates/AuthKey_AT4486F4YN.p8'),
+        keyId: 'AT4486F4YN',
+        teamId: '5S4Z656PBW',
+      },
+      topic: 'com.dagensvimmerbyab.DV',
+      production: false,
     },
-    topic: APN_TOPIC,
-    production: true,
-  }]
-});
+  ],
+};
 
-const parseServer = new ParseServer({
-  databaseURI: DATABASE_URI,
-  cloud: path.join(__dirname, 'cloud', 'main.js'),
-  appId: APP_ID,
-  masterKey: MASTER_KEY,
-  serverURL: SERVER_URL,
-  publicServerURL: PUBLIC_SERVER_URL,
-  push: pushAdapter,
-  masterKeyIps: ['0.0.0.0/0', '::/0'],
-  allowClientClassCreation: false,
-  liveQuery: {
-    classNames: ['Posts', 'Comments']
-  }
-});
-
+// Tillåt CORS och headers
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Parse-Application-Id, X-Parse-Master-Key');
@@ -88,26 +73,42 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', (_, res) => {
-  res.status(200).send('✅ Parse Server uppe och kör!');
-});
-
+// Health-check
 app.get(`${mountPath}/health`, (_, res) => {
   res.json({ status: 'ok' });
 });
 
-async function startServer() {
-  await parseServer.start(); // Viktigt: starta Parse först
-  app.use(mountPath, parseServer.app); // Använd sedan Express
+// Public endpoint
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
-  const httpServer = http.createServer(app);
-  httpServer.listen(port, () => {
-    console.log(`🚀 Servern körs på http://localhost:${port}${mountPath}`);
-  });
-
-  ParseServer.createLiveQueryServer(httpServer);
-}
-
-startServer().catch((err) => {
-  console.error('❌ Fel vid serverstart:', err);
+// Root-endpoint
+app.get('/', (_, res) => {
+  res.status(200).send('✅ Parse Server uppe och kör!');
 });
+
+// Initiera Parse Server
+const parseServer = new ParseServer({
+  databaseURI: DATABASE_URI,
+  cloud: './cloud/main.js',
+  appId: APP_ID,
+  masterKey: MASTER_KEY,
+  serverURL: SERVER_URL,
+  publicServerURL: PUBLIC_SERVER_URL,
+  push,
+  allowClientClassCreation: false,
+  liveQuery: {
+    classNames: ['Posts', 'Comments'],
+  },
+});
+
+// Mounta servern
+app.use(mountPath, parseServer.app);
+
+// Starta HTTP-servern
+const httpServer = createServer(app);
+httpServer.listen(port, () => {
+  console.log(`🚀 Servern körs på http://localhost:${port}${mountPath}`);
+});
+
+// LiveQuery
+ParseServer.createLiveQueryServer(httpServer);
