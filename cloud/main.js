@@ -48,7 +48,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
 
   // Viktigt: ändra pushType till fcm för Android
   if (deviceType === "android") {
-    installation.set("pushType", "fcm");
+    installation.set("pushType", "gcm");
   } else if (deviceType === "ios") {
     installation.set("pushType", "apn");
   }
