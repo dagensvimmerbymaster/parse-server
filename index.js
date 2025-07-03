@@ -3,6 +3,7 @@ console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...'
 const express = require('express');
 const http = require('http');
 const { ParseServer } = require('parse-server');
+const { ParsePushAdapter } = require('@parse/push-adapter');
 const path = require('path');
 const fs = require('fs');
 
@@ -16,8 +17,7 @@ const {
   SERVER_URL,
   PUBLIC_SERVER_URL,
   MONGODB_URI,
-  FCM_SERVICE_ACCOUNT,   // Hela JSON som sträng
-  FCM_SENDER_ID,         // Din Firebase Sender ID (t.ex. 9966393092)
+  FCM_SERVICE_ACCOUNT,   // JSON som sträng
   APN_KEY_PATH,
   APN_KEY_ID,
   APN_TEAM_ID,
@@ -40,32 +40,13 @@ if (!FCM_SERVICE_ACCOUNT) {
   process.exit(1);
 }
 
-if (!FCM_SENDER_ID) {
-  console.error('❌ Miljövariabeln FCM_SENDER_ID saknas!');
-  process.exit(1);
-}
-
-// Skriv ut FCM-service account JSON till temporär fil
-const fcmKeyPath = path.join(__dirname, 'temp-fcm-service-account.json');
-fs.writeFileSync(fcmKeyPath, FCM_SERVICE_ACCOUNT);
-
-// Läs in JSON-objektet från miljövariabeln
-let fcmServiceAccountJson;
+// Parsea service account JSON
+let fcmServiceAccount;
 try {
-  fcmServiceAccountJson = JSON.parse(FCM_SERVICE_ACCOUNT);
-  console.log("✅ FCM_SERVICE_ACCOUNT JSON parsed OK");
+  fcmServiceAccount = JSON.parse(FCM_SERVICE_ACCOUNT);
+  console.log('✅ FCM_SERVICE_ACCOUNT JSON parsed OK');
 } catch (err) {
-  console.error("❌ Fel vid parse av FCM_SERVICE_ACCOUNT JSON:", err);
-  process.exit(1);
-}
-
-// Kontrollera att filen är läsbar och logga en del av innehållet
-try {
-  const content = fs.readFileSync(fcmKeyPath, 'utf-8');
-  console.log("✅ FCM service account fil sparad på:", fcmKeyPath);
-  console.log("✅ FCM service account filinnehåll (första 200 tecken):", content.substring(0, 200));
-} catch (err) {
-  console.error("❌ Kunde inte läsa FCM service account fil:", err);
+  console.error('❌ Fel vid parsing av FCM_SERVICE_ACCOUNT:', err);
   process.exit(1);
 }
 
@@ -98,11 +79,10 @@ app.get('/', (_, res) => {
 });
 
 async function startServer() {
-
-  const pushConfig = {
+  // Skapa ParsePushAdapter explicit
+  const pushAdapter = new ParsePushAdapter({
     android: {
-      serviceAccount: fcmServiceAccountJson,
-      senderId: FCM_SENDER_ID
+      serviceAccount: fcmServiceAccount,
     },
     ios: [
       {
@@ -115,9 +95,7 @@ async function startServer() {
         production: true,
       }
     ]
-  };
-
-  console.log('🧩 Push-konfiguration:', pushConfig);
+  });
 
   const parseServer = new ParseServer({
     databaseURI: MONGODB_URI,
@@ -127,7 +105,7 @@ async function startServer() {
     serverURL: SERVER_URL,
     publicServerURL: PUBLIC_SERVER_URL,
 
-    push: pushConfig,
+    push: pushAdapter,
 
     masterKeyIps: ['0.0.0.0/0', '::/0'],
     allowClientClassCreation: true,
@@ -135,6 +113,8 @@ async function startServer() {
       classNames: ['Posts', 'Comments']
     }
   });
+
+  console.log('🧩 Push-konfiguration:', parseServer.options.push);
 
   await parseServer.start();
 
