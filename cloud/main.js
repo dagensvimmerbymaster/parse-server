@@ -1,5 +1,3 @@
-// Modern Cloud Code för Parse Server v6+
-
 const fs = require("fs");
 const path = require("path");
 
@@ -48,8 +46,9 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   if (localeIdentifier) installation.set("localeIdentifier", localeIdentifier);
   if (appVersion) installation.set("appVersion", appVersion);
 
+  // Viktigt: ändra pushType till fcm för Android
   if (deviceType === "android") {
-    installation.set("pushType", "gcm");
+    installation.set("pushType", "fcm");
   } else if (deviceType === "ios") {
     installation.set("pushType", "apn");
   }
@@ -98,7 +97,6 @@ Parse.Cloud.define("directApnPushTest", async (request) => {
 
   const apn = require("@parse/node-apn");
 
-  // ✅ Robust sökväg till .p8-filen
   const keyPath = path.resolve(__dirname, "../certificates/AuthKey_AT4486F4YN.p8");
   const key = fs.readFileSync(keyPath);
 

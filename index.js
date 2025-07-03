@@ -23,6 +23,7 @@ const {
   APN_TOPIC
 } = process.env;
 
+// Kontrollera att nödvändiga miljövariabler finns
 if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
   console.error("❌ En eller flera viktiga miljövariabler saknas (APP_ID, MASTER_KEY, SERVER_URL, MONGODB_URI).");
   process.exit(1);
@@ -31,6 +32,12 @@ if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
 // Kontrollera APNs-nyckelfil
 if (!APN_KEY_PATH || !fs.existsSync(APN_KEY_PATH)) {
   console.error('❌ APNs-certifikat saknas eller sökvägen är felaktig:', APN_KEY_PATH);
+  process.exit(1);
+}
+
+// Kontrollera FCM nyckel
+if (!FCM_API_KEY) {
+  console.error('❌ Miljövariabeln FCM_API_KEY saknas!');
   process.exit(1);
 }
 
@@ -73,7 +80,7 @@ async function startServer() {
 
     push: {
       android: {
-        apiKey: FCM_API_KEY
+        serverKey: FCM_API_KEY
       },
       ios: [
         {
