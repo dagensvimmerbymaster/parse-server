@@ -45,12 +45,13 @@ if (!FCM_SENDER_ID) {
   process.exit(1);
 }
 
-let fcmServiceAccountObject;
+// Parsea FCM-service account JSON från miljövariabeln
+let fcmServiceAccountJson = null;
 try {
-  fcmServiceAccountObject = JSON.parse(FCM_SERVICE_ACCOUNT);
-  console.log("✅ FCM_SERVICE_ACCOUNT JSON parsed OK");
+  fcmServiceAccountJson = JSON.parse(FCM_SERVICE_ACCOUNT);
+  console.log('✅ FCM_SERVICE_ACCOUNT JSON parsed OK');
 } catch (err) {
-  console.error("❌ FCM_SERVICE_ACCOUNT är inte giltig JSON:", err);
+  console.error('❌ Kunde inte parsa FCM_SERVICE_ACCOUNT JSON:', err);
   process.exit(1);
 }
 
@@ -93,7 +94,7 @@ async function startServer() {
 
     push: {
       android: {
-        serviceAccount: fcmServiceAccountObject,
+        serviceAccount: fcmServiceAccountJson,
         senderId: FCM_SENDER_ID
       },
       ios: [
