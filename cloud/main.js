@@ -151,3 +151,4 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
   console.error('❌ Ohanterat undantag:', err);
 });
+export {};
