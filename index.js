@@ -16,12 +16,14 @@ const {
   SERVER_URL,
   PUBLIC_SERVER_URL,
   MONGODB_URI,
-  FCM_SERVER_KEY,
   APN_KEY_PATH,
   APN_KEY_ID,
   APN_TEAM_ID,
   APN_TOPIC
 } = process.env;
+
+// Hårdkodad FCM server key för test
+const FCM_SERVER_KEY = 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr';
 
 // Kontrollera att nödvändiga miljövariabler finns
 if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
@@ -32,12 +34,6 @@ if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
 // Kontrollera APNs-nyckelfil
 if (!APN_KEY_PATH || !fs.existsSync(APN_KEY_PATH)) {
   console.error('❌ APNs-certifikat saknas eller sökvägen är felaktig:', APN_KEY_PATH);
-  process.exit(1);
-}
-
-// Kontrollera FCM nyckel
-if (!FCM_SERVER_KEY) {
-  console.error('❌ Miljövariabeln FCM_SERVER_KEY saknas!');
   process.exit(1);
 }
 
@@ -78,7 +74,6 @@ async function startServer() {
     serverURL: SERVER_URL,
     publicServerURL: PUBLIC_SERVER_URL,
 
-    // Push-konfiguration enligt Parse standard (API v1 för FCM)
     push: {
       android: {
         serverKey: FCM_SERVER_KEY
