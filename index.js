@@ -1,66 +1,75 @@
 import express from 'express';
 import { ParseServer } from 'parse-server';
-import dotenv from 'dotenv';
+import ParseDashboard from 'parse-dashboard';
+import { ParsePushAdapter } from '@parse/push-adapter';
+import fs from 'fs';
 
-dotenv.config();
+console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
 
-const {
-  APP_ID,
-  MASTER_KEY,
-  SERVER_URL,
-  PUBLIC_SERVER_URL,
-  MONGODB_URI,
-  FCM_SERVICE_ACCOUNT,
-  FCM_SENDER_ID,
-  APN_KEY_PATH,
-  APN_KEY_ID,
-  APN_TEAM_ID,
-  APN_TOPIC
-} = process.env;
-
+// FCM-konfiguration
 let fcmServiceAccount;
 try {
-  fcmServiceAccount = JSON.parse(FCM_SERVICE_ACCOUNT);
+  fcmServiceAccount = JSON.parse(process.env.FCM_SERVICE_ACCOUNT);
   console.log('✅ FCM_SERVICE_ACCOUNT parsed');
-} catch (err) {
-  console.error('❌ Failed to parse FCM_SERVICE_ACCOUNT:', err);
+} catch (e) {
+  console.error('❌ FCM_SERVICE_ACCOUNT JSON är ogiltig');
   process.exit(1);
 }
 
-const pushConfig = {
+// Push-adapter
+const pushAdapter = new ParsePushAdapter({
   android: {
-    senderId: FCM_SENDER_ID,
+    senderId: process.env.FCM_SENDER_ID,
     serviceAccount: fcmServiceAccount,
   },
   ios: {
     token: {
-      key: APN_KEY_PATH,
-      keyId: APN_KEY_ID,
-      teamId: APN_TEAM_ID
+      key: process.env.APN_KEY_PATH,
+      keyId: process.env.APN_KEY_ID,
+      teamId: process.env.APN_TEAM_ID,
     },
-    topic: APN_TOPIC
-  }
-};
+    topic: process.env.APN_TOPIC,
+  },
+});
 
-const startServer = async () => {
-  const parseServer = await ParseServer.start({
-    appId: APP_ID,
-    masterKey: MASTER_KEY,
-    serverURL: SERVER_URL,
-    publicServerURL: PUBLIC_SERVER_URL,
-    databaseURI: MONGODB_URI,
-    cloud: './main.js',
-    push: pushConfig,
-    allowClientClassCreation: false
-  });
+// Skapa Parse Server
+const api = new ParseServer({
+  databaseURI: process.env.MONGODB_URI,
+  cloud: './cloud/main.js',
+  appId: process.env.APP_ID,
+  masterKey: process.env.MASTER_KEY,
+  serverURL: process.env.SERVER_URL,
+  publicServerURL: process.env.PUBLIC_SERVER_URL,
+  push: pushAdapter,
+  allowClientClassCreation: false,
+});
 
-  const app = express();
-  app.use('/parse', parseServer.app);
+// Express server
+const app = express();
+app.use('/parse', api.app);
 
-  const port = process.env.PORT || 1337;
-  app.listen(port, () => {
-    console.log(`✅ Parse Server running on port ${port}`);
-  });
-};
+// Parse Dashboard (valfritt, kräver basic auth)
+const dashboard = new ParseDashboard({
+  apps: [
+    {
+      serverURL: process.env.SERVER_URL,
+      appId: process.env.APP_ID,
+      masterKey: process.env.MASTER_KEY,
+      appName: 'Dagens Vimmerby',
+    },
+  ],
+  users: [
+    {
+      user: 'admin',
+      pass: 'admin123', // byt i produktion!
+    },
+  ],
+}, { allowInsecureHTTP: true });
 
-startServer();
+app.use('/dashboard', dashboard);
+
+// Starta server
+const port = process.env.PORT || 1337;
+app.listen(port, () => {
+  console.log(`✅ Parse Server kör på port ${port}`);
+});
