@@ -63,7 +63,7 @@ const api = new ParseServer({
 });
 
 const app = express();
-app.use('/parse', api);
+app.use('/parse', api.app);
 
 const port = process.env.PORT || 1337;
 app.listen(port, () => {
