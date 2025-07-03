@@ -1,39 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-
-// ✅ Enkel testfunktion
+// Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
   return "Hello world!";
 });
 
-// ✅ beforeSave för _Installation – loggar enbart, utan att ändra något
-Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
-  try {
-    const obj = req.object;
-    const original = req.original;
-
-    console.log('📥 beforeSave triggered for _Installation');
-
-    if (obj) {
-      console.log('📦 Object:', JSON.stringify(obj.toJSON(), null, 2));
-    } else {
-      console.warn('⚠️ Saknar req.object!');
-    }
-
-    if (original) {
-      console.log('🔁 Original:', JSON.stringify(original.toJSON(), null, 2));
-    } else {
-      console.log('🆕 Ny installation (original saknas)');
-    }
-
-    // 🔒 Ingen ändring eller validering sker här
-  } catch (err) {
-    console.error('❌ beforeSave error (logging-only):', err);
-    // OBS: Vi kastar INTE error, så vi inte blockerar request
-  }
-});
-
-// ✅ Uppdatera eller skapa en installation manuellt
+// 🛠 Cloud Function för att skapa/uppdatera en installation
 Parse.Cloud.define("UpdateInstallation", async (request) => {
   try {
     const {
@@ -50,7 +20,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     } = request.params;
 
     if (!installationId || !deviceType) {
-      throw new Error("installationId och deviceType krävs.");
+      throw new Error("⛔ Både installationId och deviceType krävs.");
     }
 
     const Installation = Parse.Object.extend("_Installation");
@@ -65,6 +35,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
       installation.set("installationId", installationId);
     }
 
+    // Sätt alla relevanta fält (endast om tillgängliga)
     if (GCMSenderId) installation.set("GCMSenderId", GCMSenderId);
     if (deviceType) installation.set("deviceType", deviceType);
     if (appName) installation.set("appName", appName);
@@ -74,16 +45,19 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     if (localeIdentifier) installation.set("localeIdentifier", localeIdentifier);
     if (appVersion) installation.set("appVersion", appVersion);
 
+    // Endast sätt deviceToken om det är nytt eller förändrat
     if (deviceToken && (isNew || installation.get("deviceToken") !== deviceToken)) {
       installation.set("deviceToken", deviceToken);
     }
 
+    // PushType
     if (deviceType === "android") {
       installation.set("pushType", "fcm");
     } else if (deviceType === "ios") {
       installation.set("pushType", "apn");
     }
 
+    // Lägg till 'global' channel
     const channels = installation.get("channels") || [];
     if (!channels.includes("global")) {
       channels.push("global");
@@ -91,7 +65,9 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     }
 
     await installation.save(null, { useMasterKey: true });
-    return { success: true };
+
+    console.log("✅ Installation sparad:", installation.id);
+    return { success: true, id: installation.id };
 
   } catch (err) {
     console.error("❌ Fel i UpdateInstallation:", err);
@@ -99,40 +75,10 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   }
 });
 
-// ✅ Skicka push till alla installationer
-Parse.Cloud.define("sendPushToAll", async (request) => {
-  try {
-    const { message, title, url } = request.params;
-
-    if (!request.master) throw new Error("⛔ MasterKey krävs.");
-    if (!message) throw new Error("⛔ 'message' krävs.");
-
-    const query = new Parse.Query("_Installation");
-    query.exists("deviceToken");
-    query.exists("pushType");
-
-    await Parse.Push.send({
-      where: query,
-      data: {
-        alert: message,
-        title: title || "Meddelande",
-        badge: "Increment",
-        sound: "default",
-        url: url || null,
-      },
-    }, { useMasterKey: true });
-
-    return { success: true };
-  } catch (err) {
-    console.error("❌ Fel i sendPushToAll:", err);
-    throw err;
-  }
+// Global felhantering
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Ohanterat löfte-fel:", reason);
 });
-
-// 🛠️ Global fångst av oväntade fel
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Ohanterat löfte-fel:', reason);
-});
-process.on('uncaughtException', (err) => {
-  console.error('❌ Ohanterat undantag:', err);
+process.on("uncaughtException", (err) => {
+  console.error("❌ Ohanterat undantag:", err);
 });
