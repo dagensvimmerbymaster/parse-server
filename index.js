@@ -51,7 +51,7 @@ const parseServer = new ParseServer({
   serverURL: process.env.SERVER_URL,
   publicServerURL: process.env.PUBLIC_SERVER_URL,
   push,
-  allowClientClassCreation: false,
+  allowClientClassCreation: true,
   liveQuery: {
     classNames: ['Posts', 'Comments'],
   },
