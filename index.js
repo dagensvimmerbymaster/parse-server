@@ -68,6 +68,25 @@ app.use((req, res, next) => {
   next();
 });
 
+// ----- /serverInfo endpoint (för t.ex. Parse Dashboard) -----
+const serverInfoHandler = (req, res) => {
+  return res.json({
+    parseServerVersion: ParseServer.version,
+    features: {
+      globalConfig: true,
+      hooks: true,
+      logs: true,
+      push: true,
+      schemas: true,
+      cloudCode: true,
+      logsViewer: true,
+    },
+  });
+};
+
+app.get(`${mountPath}/serverInfo`, serverInfoHandler);
+app.post(`${mountPath}/serverInfo`, serverInfoHandler);
+
 // ----- Health-check (måste sättas innan Parse mountas) -----
 app.get(`${mountPath}/health`, (_, res) => {
   res.status(200).json({ status: 'ok' });
