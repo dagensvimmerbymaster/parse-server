@@ -1,18 +1,16 @@
 import express from 'express';
 import { ParseServer } from 'parse-server';
-import ParseDashboard from 'parse-dashboard';
 import { ParsePushAdapter } from '@parse/push-adapter';
-import fs from 'fs';
 
-console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
+console.log('✅ Initierar Parse Server med push-stöd...');
 
 // FCM-konfiguration
 let fcmServiceAccount;
 try {
   fcmServiceAccount = JSON.parse(process.env.FCM_SERVICE_ACCOUNT);
-  console.log('✅ FCM_SERVICE_ACCOUNT parsed');
+  console.log('✅ FCM_SERVICE_ACCOUNT JSON parsed OK');
 } catch (e) {
-  console.error('❌ FCM_SERVICE_ACCOUNT JSON är ogiltig');
+  console.error('❌ FCM_SERVICE_ACCOUNT kunde inte parsas:', e);
   process.exit(1);
 }
 
@@ -44,31 +42,11 @@ const api = new ParseServer({
   allowClientClassCreation: false,
 });
 
-// Express server
+// Express-app
 const app = express();
 app.use('/parse', api.app);
 
-// Parse Dashboard (valfritt, kräver basic auth)
-const dashboard = new ParseDashboard({
-  apps: [
-    {
-      serverURL: process.env.SERVER_URL,
-      appId: process.env.APP_ID,
-      masterKey: process.env.MASTER_KEY,
-      appName: 'Dagens Vimmerby',
-    },
-  ],
-  users: [
-    {
-      user: 'admin',
-      pass: 'admin123', // byt i produktion!
-    },
-  ],
-}, { allowInsecureHTTP: true });
-
-app.use('/dashboard', dashboard);
-
-// Starta server
+// Starta servern
 const port = process.env.PORT || 1337;
 app.listen(port, () => {
   console.log(`✅ Parse Server kör på port ${port}`);
