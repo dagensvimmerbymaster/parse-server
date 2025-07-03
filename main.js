@@ -1,28 +1,27 @@
-const fs = require("fs");
-const path = require("path");
-
 // Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
   return "Hello world!";
 });
 
-Parse.Cloud.define("serverInfo", async () => {
-  return {
-    parseServerVersion: Parse.serverVersion,
-    features: {
-      globalConfig: true,
-      hooks: true,
-      logs: true,
-      push: true,
-      schemas: true,
-      cloudCode: true,
-      logsViewer: true
-    }
-  };
+// ✅ beforeSave för _Installation – logga inkommande objekt & sätt pushType/channels
+Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
+  console.log('📥 Incoming _Installation object:', JSON.stringify(req.object.toJSON(), null, 2));
+
+  const deviceType = req.object.get('deviceType');
+  if (deviceType === 'android') {
+    req.object.set('pushType', 'fcm');
+  } else if (deviceType === 'ios') {
+    req.object.set('pushType', 'apn');
+  }
+
+  const channels = req.object.get('channels') || [];
+  if (!channels.includes('global')) {
+    channels.push('global');
+    req.object.set('channels', channels);
+  }
 });
 
-
-// ✅ Uppdatera eller skapa en installation
+// ✅ Uppdatera eller skapa en installation manuellt
 Parse.Cloud.define("UpdateInstallation", async (request) => {
   const {
     installationId,
@@ -101,21 +100,4 @@ Parse.Cloud.define("sendPushToAll", async (request) => {
   }, { useMasterKey: true });
 
   return { success: true };
-});
-
-// 🪵 Logga inkommande _Installation-objekt
-Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
-  console.log('📦 [beforeSave] _Installation objekt som tas emot:');
-  console.log(JSON.stringify(req.object.toJSON(), null, 2));
-
-  const deviceType = req.object.get('deviceType');
-  if (!deviceType) {
-    throw '⛔ deviceType saknas!';
-  }
-
-  if (deviceType === 'android') {
-    req.object.set('pushType', 'fcm');
-  } else if (deviceType === 'ios') {
-    req.object.set('pushType', 'apn');
-  }
 });
