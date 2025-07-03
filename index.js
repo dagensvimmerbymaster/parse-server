@@ -16,7 +16,7 @@ const {
   SERVER_URL,
   PUBLIC_SERVER_URL,
   MONGODB_URI,
-  FCM_API_KEY,
+  FCM_SERVER_KEY,
   APN_KEY_PATH,
   APN_KEY_ID,
   APN_TEAM_ID,
@@ -36,8 +36,8 @@ if (!APN_KEY_PATH || !fs.existsSync(APN_KEY_PATH)) {
 }
 
 // Kontrollera FCM nyckel
-if (!FCM_API_KEY) {
-  console.error('❌ Miljövariabeln FCM_API_KEY saknas!');
+if (!FCM_SERVER_KEY) {
+  console.error('❌ Miljövariabeln FCM_SERVER_KEY saknas!');
   process.exit(1);
 }
 
@@ -78,9 +78,10 @@ async function startServer() {
     serverURL: SERVER_URL,
     publicServerURL: PUBLIC_SERVER_URL,
 
+    // Push-konfiguration enligt Parse standard (API v1 för FCM)
     push: {
       android: {
-        serverKey: FCM_API_KEY
+        serverKey: FCM_SERVER_KEY
       },
       ios: [
         {
