@@ -45,17 +45,12 @@ if (!FCM_SENDER_ID) {
   process.exit(1);
 }
 
-// Skriv ut FCM-service account JSON till temporär fil
-const fcmKeyPath = path.join(__dirname, 'temp-fcm-service-account.json');
-fs.writeFileSync(fcmKeyPath, FCM_SERVICE_ACCOUNT);
-
-// Kontrollera att filen är läsbar och logga en del av innehållet
+let fcmServiceAccountObject;
 try {
-  const content = fs.readFileSync(fcmKeyPath, 'utf-8');
-  console.log("✅ FCM service account fil sparad på:", fcmKeyPath);
-  console.log("✅ FCM service account filinnehåll (första 200 tecken):", content.substring(0, 200));
+  fcmServiceAccountObject = JSON.parse(FCM_SERVICE_ACCOUNT);
+  console.log("✅ FCM_SERVICE_ACCOUNT JSON parsed OK");
 } catch (err) {
-  console.error("❌ Kunde inte läsa FCM service account fil:", err);
+  console.error("❌ FCM_SERVICE_ACCOUNT är inte giltig JSON:", err);
   process.exit(1);
 }
 
@@ -98,7 +93,7 @@ async function startServer() {
 
     push: {
       android: {
-        serviceAccount: fcmKeyPath,
+        serviceAccount: fcmServiceAccountObject,
         senderId: FCM_SENDER_ID
       },
       ios: [
@@ -120,6 +115,8 @@ async function startServer() {
       classNames: ['Posts', 'Comments']
     }
   });
+
+  console.log('🧩 Push-konfiguration:', parseServer.options.push);
 
   await parseServer.start();
 
