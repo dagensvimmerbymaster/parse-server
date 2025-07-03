@@ -6,6 +6,22 @@ Parse.Cloud.define("hello", async () => {
   return "Hello world!";
 });
 
+Parse.Cloud.define("serverInfo", async () => {
+  return {
+    parseServerVersion: Parse.serverVersion,
+    features: {
+      globalConfig: true,
+      hooks: true,
+      logs: true,
+      push: true,
+      schemas: true,
+      cloudCode: true,
+      logsViewer: true
+    }
+  };
+});
+
+
 // ✅ Uppdatera eller skapa en installation
 Parse.Cloud.define("UpdateInstallation", async (request) => {
   const {
