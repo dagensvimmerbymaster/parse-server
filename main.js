@@ -5,19 +5,24 @@ Parse.Cloud.define("hello", async () => {
 
 // ✅ beforeSave för _Installation – logga inkommande objekt & sätt pushType/channels
 Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
-  console.log('📥 Incoming _Installation object:', JSON.stringify(req.object.toJSON(), null, 2));
+  try {
+    console.log('📥 Incoming _Installation object:', JSON.stringify(req.object.toJSON(), null, 2));
 
-  const deviceType = req.object.get('deviceType');
-  if (deviceType === 'android') {
-    req.object.set('pushType', 'fcm');
-  } else if (deviceType === 'ios') {
-    req.object.set('pushType', 'apn');
-  }
+    const deviceType = req.object.get('deviceType');
+    if (deviceType === 'android') {
+      req.object.set('pushType', 'fcm');
+    } else if (deviceType === 'ios') {
+      req.object.set('pushType', 'apn');
+    }
 
-  const channels = req.object.get('channels') || [];
-  if (!channels.includes('global')) {
-    channels.push('global');
-    req.object.set('channels', channels);
+    const channels = req.object.get('channels') || [];
+    if (!channels.includes('global')) {
+      channels.push('global');
+      req.object.set('channels', channels);
+    }
+  } catch (err) {
+    console.error('❌ beforeSave error:', err);
+    throw err;
   }
 });
 
