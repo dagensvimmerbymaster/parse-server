@@ -22,9 +22,6 @@ const {
   APN_TOPIC
 } = process.env;
 
-// Hårdkodad FCM server key för test
-const FCM_SERVER_KEY = 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr';
-
 // Kontrollera att nödvändiga miljövariabler finns
 if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
   console.error("❌ En eller flera viktiga miljövariabler saknas (APP_ID, MASTER_KEY, SERVER_URL, MONGODB_URI).");
@@ -76,7 +73,8 @@ async function startServer() {
 
     push: {
       android: {
-        serverKey: FCM_SERVER_KEY
+        serverKey: 'AAAAAlILFwQ:APA91bFc35odIRUsaAFv58wDbO_3ram_yFk92npV9HfD3T-eT7rRXMsrq8601-Y6b4RPA44KcgQe8ANGoSucIImdIs0ZlLBYPyQzVBD3s5q8C9Wj5T-Fnk684Kl1I_iWxTJyrWoim8sr',
+        senderId: '9966393092'
       },
       ios: [
         {
