@@ -1,71 +1,95 @@
 import express from 'express';
 import { ParseServer } from 'parse-server';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
 import { ParsePushAdapter } from '@parse/push-adapter';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-console.log('✅ Initierar Parse Server med push-stöd...');
-
-let fcmServiceAccount;
-try {
-  fcmServiceAccount = JSON.parse(process.env.FCM_SERVICE_ACCOUNT || '{}');
-  console.log('✅ FCM_SERVICE_ACCOUNT parsed (type:', fcmServiceAccount.type, ')');
-} catch (error) {
-  console.error('❌ Fel: Kunde inte parsa FCM_SERVICE_ACCOUNT JSON:', error);
-  process.exit(1);
-}
-
-// Kontrollera att APNs-certifikatet finns
-const apnsKeyPath = path.join(__dirname, 'certificates', 'AuthKey_AT4486F4YN.p8');
-if (!fs.existsSync(apnsKeyPath)) {
-  console.error(`❌ APNs .p8-certifikat saknas: ${apnsKeyPath}`);
-  process.exit(1);
-}
-
-// Pushadapter-konfiguration
-const pushAdapter = new ParsePushAdapter({
-  android: {
-    senderId: process.env.FCM_SENDER_ID,
-    apiKey: fcmServiceAccount.private_key ? fcmServiceAccount.private_key : 'saknas',
-    options: {
-      credentials: {
-        client_email: fcmServiceAccount.client_email,
-        private_key: fcmServiceAccount.private_key,
-        project_id: fcmServiceAccount.project_id,
-      },
-    },
-  },
-  ios: [
-    {
-      token: {
-        key: fs.readFileSync(apnsKeyPath),
-        keyId: 'AT4486F4YN',
-        teamId: 'YOUR_TEAM_ID', // ⚠️ Ersätt med ditt riktiga Apple team-id
-      },
-      bundleId: 'com.dagensvimmerby.ios',
-      production: false,
-    },
-  ],
-});
-
-const api = new ParseServer({
-  databaseURI: process.env.DATABASE_URI || 'mongodb://localhost:27017/dev',
-  cloud: process.env.CLOUD_CODE_MAIN || './cloud/main.js',
-  appId: process.env.APP_ID || 'myAppId',
-  masterKey: process.env.MASTER_KEY || 'myMasterKey',
-  serverURL: process.env.SERVER_URL || 'http://localhost:1337/parse',
-  publicServerURL: process.env.PUBLIC_SERVER_URL || 'http://localhost:1337/parse',
-  push: pushAdapter,
-});
+import * as fs from 'fs';
 
 const app = express();
-app.use('/parse', api.app);
 
-const port = process.env.PORT || 1337;
+// Miljövariabler
+const {
+  DATABASE_URI,
+  APP_ID,
+  MASTER_KEY,
+  SERVER_URL,
+  PUBLIC_SERVER_URL,
+  CLOUD_CODE_MAIN,
+  FCM_SERVICE_ACCOUNT,
+  FCM_SENDER_ID,
+  PORT,
+} = process.env;
+
+// ✅ Initierar Parse Server med push-stöd...
+console.log('✅ Initierar Parse Server med push-stöd...');
+
+// FCM-konfiguration
+let fcmConfig = {};
+if (FCM_SERVICE_ACCOUNT) {
+  try {
+    const fcmServiceAccount = JSON.parse(FCM_SERVICE_ACCOUNT);
+    console.log('✅ FCM_SERVICE_ACCOUNT parsed (type:', fcmServiceAccount.type, ')');
+    fcmConfig = {
+      android: {
+        senderId: FCM_SENDER_ID,
+        apiKey: '', // inte nödvändigt för service_account
+      },
+      fcm: {
+        serviceAccount: fcmServiceAccount,
+      },
+    };
+  } catch (err) {
+    console.error('❌ Fel vid parsing av FCM_SERVICE_ACCOUNT:', err);
+  }
+}
+
+// APNs-konfiguration
+let apnsConfig = {};
+try {
+  const apnsKeyPath = './certificates/AuthKey_AT4486F4YN.p8';
+  if (fs.existsSync(apnsKeyPath)) {
+    apnsConfig = {
+      ios: [
+        {
+          pfx: apnsKeyPath,
+          keyId: 'AT4486F4YN',
+          teamId: '5S4Z656PBW',
+          topic: 'com.dagensvimmerbyab.DV',
+          production: false,
+        },
+      ],
+    };
+  } else {
+    console.warn(`⚠️ APNs-certifikat hittades inte på sökvägen ${apnsKeyPath}`);
+  }
+} catch (err) {
+  console.error('❌ Fel vid laddning av APNs-certifikat:', err);
+}
+
+// Initiera PushAdapter
+let pushConfig = {};
+try {
+  pushConfig = {
+    ...fcmConfig,
+    ...apnsConfig,
+  };
+} catch (err) {
+  console.error('❌ Fel vid initialisering av PushAdapter:', err);
+}
+
+// Starta Parse Server
+const parseServer = await ParseServer.start({
+  databaseURI: DATABASE_URI || 'mongodb://localhost:27017/dev',
+  appId: APP_ID || 'myAppId',
+  masterKey: MASTER_KEY || 'myMasterKey',
+  serverURL: SERVER_URL || 'http://localhost:1337/parse',
+  publicServerURL: PUBLIC_SERVER_URL || 'http://localhost:1337/parse',
+  cloud: CLOUD_CODE_MAIN || './cloud/main.js',
+  push: pushConfig,
+  allowClientClassCreation: false,
+});
+
+app.use('/parse', parseServer.app);
+
+const port = PORT || 1337;
 app.listen(port, () => {
   console.log(`✅ Parse Server kör på port ${port}`);
 });
