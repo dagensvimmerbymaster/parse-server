@@ -1,3 +1,4 @@
+SYNTAXERROR
 import Parse from 'parse/node';
 
 console.log('📦 main.js laddas...');
