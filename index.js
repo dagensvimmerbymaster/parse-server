@@ -1,10 +1,13 @@
 import express from 'express';
-import { ParseServer } from 'parse-server';
+import parseServerPkg from 'parse-server';
 import fs from 'fs';
 import { createServer } from 'http';
 import path from 'path';
 
+const { ParseServer } = parseServerPkg;
+
 console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
+console.log('🔢 Parse Server version:', parseServerPkg.version || '❌ Version saknas');
 
 const app = express();
 const port = process.env.PORT || 1337;
@@ -73,7 +76,7 @@ app.use((req, res, next) => {
 // ----- /serverInfo endpoint -----
 const serverInfoHandler = (req, res) => {
   return res.json({
-    parseServerVersion: ParseServer.version,
+    parseServerVersion: parseServerPkg.version || 'unknown',
     features: {
       globalConfig: true,
       hooks: true,
