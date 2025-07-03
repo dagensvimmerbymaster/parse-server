@@ -1,51 +1,28 @@
 import express from 'express';
-import { createServer } from 'http';
 import { ParseServer } from 'parse-server';
 import fs from 'fs';
+import { createServer } from 'http';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Fix för __dirname i ES-modulmiljö
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
 
 const app = express();
-const httpServer = createServer(app);
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 
-const {
-  APP_ID,
-  MASTER_KEY,
-  SERVER_URL,
-  PUBLIC_SERVER_URL,
-  MONGODB_URI,
-  FCM_SERVICE_ACCOUNT,
-} = process.env;
+app.enable('trust proxy'); // Heroku-proxy stöd
 
-// Kontrollera miljövariabler
-if (!APP_ID || !MASTER_KEY || !SERVER_URL || !MONGODB_URI) {
-  console.error('❌ En eller flera viktiga miljövariabler saknas (APP_ID, MASTER_KEY, SERVER_URL, MONGODB_URI).');
-  process.exit(1);
-}
-
-if (!FCM_SERVICE_ACCOUNT) {
-  console.error('❌ Miljövariabeln FCM_SERVICE_ACCOUNT saknas!');
-  process.exit(1);
-}
-
+// ----- Kontrollera FCM -----
 let fcmServiceAccount;
 try {
-  fcmServiceAccount = JSON.parse(FCM_SERVICE_ACCOUNT);
+  fcmServiceAccount = JSON.parse(process.env.FCM_SERVICE_ACCOUNT);
   console.log('✅ FCM_SERVICE_ACCOUNT parsed (type: service_account)');
 } catch (err) {
-  console.error('❌ Fel vid parsing av FCM_SERVICE_ACCOUNT:', err);
+  console.error('❌ FCM_SERVICE_ACCOUNT parsing misslyckades:', err);
   process.exit(1);
 }
 
-// Push-konfiguration
+// ----- Push-inställningar -----
 const push = {
   android: {
     senderId: process.env.FCM_SENDER_ID,
@@ -65,23 +42,22 @@ const push = {
   ],
 };
 
-// Starta ParseServer
+// ----- Skapa ParseServer-instans -----
 const parseServer = new ParseServer({
-  databaseURI: MONGODB_URI,
-  cloud: path.join(__dirname, 'main.js'),
-  appId: APP_ID,
-  masterKey: MASTER_KEY,
-  serverURL: SERVER_URL,
-  publicServerURL: PUBLIC_SERVER_URL,
+  databaseURI: process.env.MONGODB_URI,
+  cloud: path.resolve('./main.js'), // OBS: rätt sökväg
+  appId: process.env.APP_ID,
+  masterKey: process.env.MASTER_KEY,
+  serverURL: process.env.SERVER_URL,
+  publicServerURL: process.env.PUBLIC_SERVER_URL,
   push,
-  masterKeyIps: ['0.0.0.0/0', '::/0'],
   allowClientClassCreation: false,
   liveQuery: {
     classNames: ['Posts', 'Comments'],
   },
 });
 
-// CORS och headers
+// ----- Middleware: CORS -----
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
@@ -92,21 +68,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// Mounta Parse
-app.use(mountPath, parseServer.app);
-
-// Health endpoint
-app.get(`${mountPath}/health`, (_, res) => res.json({ status: 'ok' }));
-
-// Root info route
-app.get('/', (_, res) => {
-  res.status(200).send('✅ Parse Server uppe och kör!');
+// ----- Health-check (måste sättas innan Parse mountas) -----
+app.get(`${mountPath}/health`, (_, res) => {
+  res.status(200).json({ status: 'ok' });
 });
 
-// Starta HTTP-server
+// ----- Mounta Parse Server -----
+app.use(mountPath, parseServer.app);
+
+// ----- Starta HTTP-server + LiveQuery -----
+const httpServer = createServer(app);
 httpServer.listen(port, () => {
   console.log(`🚀 Parse Server körs på http://localhost:${port}${mountPath}`);
 });
 
-// Starta LiveQuery-server
+// ----- Starta LiveQuery Server -----
 ParseServer.createLiveQueryServer(httpServer);
