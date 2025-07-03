@@ -1,7 +1,6 @@
 import express from 'express';
 import { ParseServer } from 'parse-server';
 import dotenv from 'dotenv';
-import fs from 'fs';
 
 dotenv.config();
 
@@ -19,7 +18,6 @@ const {
   APN_TOPIC
 } = process.env;
 
-// ✅ Läs och parsa FCM-nyckeln
 let fcmServiceAccount;
 try {
   fcmServiceAccount = JSON.parse(FCM_SERVICE_ACCOUNT);
@@ -29,7 +27,6 @@ try {
   process.exit(1);
 }
 
-// ✅ Push-konfiguration
 const pushConfig = {
   android: {
     senderId: FCM_SENDER_ID,
@@ -45,24 +42,25 @@ const pushConfig = {
   }
 };
 
-// ✅ Initiera Parse Server
-const api = new ParseServer({
-  appId: APP_ID,
-  masterKey: MASTER_KEY,
-  serverURL: SERVER_URL,
-  publicServerURL: PUBLIC_SERVER_URL,
-  databaseURI: MONGODB_URI,
-  cloud: './main.js',
-  push: pushConfig,
-  allowClientClassCreation: false
-});
+const startServer = async () => {
+  const parseServer = await ParseServer.start({
+    appId: APP_ID,
+    masterKey: MASTER_KEY,
+    serverURL: SERVER_URL,
+    publicServerURL: PUBLIC_SERVER_URL,
+    databaseURI: MONGODB_URI,
+    cloud: './main.js',
+    push: pushConfig,
+    allowClientClassCreation: false
+  });
 
-// ✅ Express-app med korrekt middleware
-const app = express();
-app.use('/parse', api.app);  // 🟢 VIKTIG FIX
+  const app = express();
+  app.use('/parse', parseServer.app);
 
-// ✅ Starta server
-const port = process.env.PORT || 1337;
-app.listen(port, () => {
-  console.log(`✅ Parse Server running on port ${port}`);
-});
+  const port = process.env.PORT || 1337;
+  app.listen(port, () => {
+    console.log(`✅ Parse Server running on port ${port}`);
+  });
+};
+
+startServer();
