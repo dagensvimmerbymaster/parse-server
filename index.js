@@ -45,13 +45,27 @@ if (!FCM_SENDER_ID) {
   process.exit(1);
 }
 
-// Parsea FCM-service account JSON från miljövariabeln
-let fcmServiceAccountJson = null;
+// Skriv ut FCM-service account JSON till temporär fil
+const fcmKeyPath = path.join(__dirname, 'temp-fcm-service-account.json');
+fs.writeFileSync(fcmKeyPath, FCM_SERVICE_ACCOUNT);
+
+// Läs in JSON-objektet från miljövariabeln
+let fcmServiceAccountJson;
 try {
   fcmServiceAccountJson = JSON.parse(FCM_SERVICE_ACCOUNT);
-  console.log('✅ FCM_SERVICE_ACCOUNT JSON parsed OK');
+  console.log("✅ FCM_SERVICE_ACCOUNT JSON parsed OK");
 } catch (err) {
-  console.error('❌ Kunde inte parsa FCM_SERVICE_ACCOUNT JSON:', err);
+  console.error("❌ Fel vid parse av FCM_SERVICE_ACCOUNT JSON:", err);
+  process.exit(1);
+}
+
+// Kontrollera att filen är läsbar och logga en del av innehållet
+try {
+  const content = fs.readFileSync(fcmKeyPath, 'utf-8');
+  console.log("✅ FCM service account fil sparad på:", fcmKeyPath);
+  console.log("✅ FCM service account filinnehåll (första 200 tecken):", content.substring(0, 200));
+} catch (err) {
+  console.error("❌ Kunde inte läsa FCM service account fil:", err);
   process.exit(1);
 }
 
@@ -84,6 +98,27 @@ app.get('/', (_, res) => {
 });
 
 async function startServer() {
+
+  const pushConfig = {
+    android: {
+      serviceAccount: fcmServiceAccountJson,
+      senderId: FCM_SENDER_ID
+    },
+    ios: [
+      {
+        token: {
+          key: fs.readFileSync(APN_KEY_PATH),
+          keyId: APN_KEY_ID,
+          teamId: APN_TEAM_ID,
+        },
+        topic: APN_TOPIC,
+        production: true,
+      }
+    ]
+  };
+
+  console.log('🧩 Push-konfiguration:', pushConfig);
+
   const parseServer = new ParseServer({
     databaseURI: MONGODB_URI,
     cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
@@ -92,23 +127,7 @@ async function startServer() {
     serverURL: SERVER_URL,
     publicServerURL: PUBLIC_SERVER_URL,
 
-    push: {
-      android: {
-        serviceAccount: fcmServiceAccountJson,
-        senderId: FCM_SENDER_ID
-      },
-      ios: [
-        {
-          token: {
-            key: fs.readFileSync(APN_KEY_PATH),
-            keyId: APN_KEY_ID,
-            teamId: APN_TEAM_ID,
-          },
-          topic: APN_TOPIC,
-          production: true,
-        }
-      ]
-    },
+    push: pushConfig,
 
     masterKeyIps: ['0.0.0.0/0', '::/0'],
     allowClientClassCreation: true,
@@ -116,8 +135,6 @@ async function startServer() {
       classNames: ['Posts', 'Comments']
     }
   });
-
-  console.log('🧩 Push-konfiguration:', parseServer.options.push);
 
   await parseServer.start();
 
