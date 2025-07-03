@@ -1,3 +1,7 @@
+import Parse from 'parse/node';
+
+console.log('📦 main.js laddas...');
+
 // Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
   return "Hello world!";
