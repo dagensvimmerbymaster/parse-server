@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 
 // Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
@@ -85,3 +87,19 @@ Parse.Cloud.define("sendPushToAll", async (request) => {
   return { success: true };
 });
 
+// 🪵 Logga inkommande _Installation-objekt
+Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
+  console.log('📦 [beforeSave] _Installation objekt som tas emot:');
+  console.log(JSON.stringify(req.object.toJSON(), null, 2));
+
+  const deviceType = req.object.get('deviceType');
+  if (!deviceType) {
+    throw '⛔ deviceType saknas!';
+  }
+
+  if (deviceType === 'android') {
+    req.object.set('pushType', 'fcm');
+  } else if (deviceType === 'ios') {
+    req.object.set('pushType', 'apn');
+  }
+});
