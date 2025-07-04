@@ -26,11 +26,11 @@ try {
 
 // ----- Push-inställningar -----
 const push = {
-  android: {
-    senderId: process.env.FCM_SENDER_ID,
-    serviceAccount: fcmServiceAccount,
-    type: 'fcm',
-  },
+//  android: {
+  //  senderId: process.env.FCM_SENDER_ID,
+    //serviceAccount: fcmServiceAccount,
+    //type: 'fcm',
+  //},
   ios: [
     {
       token: {
