@@ -6,12 +6,21 @@ const path = require('path');
 
 const { ParseServer } = parseServerPkg;
 
-console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
-console.log('🔢 Parse Server version:', parseServerPkg.version || '❌ Version saknas');
+console.log('✅ Initierar Parse Server med push-stöd...');
 
 const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
+
+const databaseURI = process.env.MONGODB_URI;
+const appId = process.env.APP_ID;
+const masterKey = process.env.MASTER_KEY;
+const serverURL = process.env.SERVER_URL;
+const publicServerURL = process.env.PUBLIC_SERVER_URL;
+
+console.log('📦 APP_ID:', appId);
+console.log('📦 MASTER_KEY:', masterKey);
+console.log('🌍 SERVER_URL:', serverURL);
 
 app.enable('trust proxy'); // Heroku-proxy stöd
 
@@ -45,27 +54,6 @@ const push = {
   ],
 };
 
-// ----- Skapa ParseServer-instans -----
-const parseServer = new ParseServer({
-  databaseURI: process.env.MONGODB_URI,
-  cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
-  appId: process.env.APP_ID,
-  masterKey: process.env.MASTER_KEY,
-  serverURL: process.env.SERVER_URL,
-  publicServerURL: process.env.PUBLIC_SERVER_URL,
-  javascriptKey: process.env.JAVASCRIPT_KEY || '',
-  restAPIKey: process.env.REST_API_KEY || '',
-  dotNetKey: process.env.DOTNET_KEY || '',
-  clientKey: process.env.CLIENT_KEY || '',
-  push,
-  allowClientClassCreation: true,
-  liveQuery: {
-    classNames: ['Posts', 'Comments'],
-  },
-  logLevel: 'info',
-  verbose: true,
-});
-
 // ----- Middleware: CORS -----
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -77,10 +65,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// ----- /serverInfo endpoint -----
-const serverInfoHandler = (req, res) => {
+// ----- serverInfo -----
+app.get(`${mountPath}/serverInfo`, (req, res) => {
   return res.json({
-    parseServerVersion: parseServerPkg.version || 'unknown',
+    parseServerVersion: ParseServer.version,
     features: {
       globalConfig: true,
       hooks: true,
@@ -91,26 +79,46 @@ const serverInfoHandler = (req, res) => {
       logsViewer: true,
     },
   });
-};
-app.get(`${mountPath}/serverInfo`, serverInfoHandler);
-app.post(`${mountPath}/serverInfo`, serverInfoHandler);
+});
 
-// ----- Health-check endpoint -----
+// ----- Health-check -----
 app.get(`${mountPath}/health`, (_, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// ----- Mounta Parse Server -----
-app.use(mountPath, parseServer.app);
+// ----- Starta server (async för ParseServer v8+) -----
+async function startServer() {
+  const parseServer = new ParseServer({
+    databaseURI,
+    cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
+    appId,
+    masterKey,
+    serverURL,
+    publicServerURL,
+    push,
+    allowClientClassCreation: true,
+    liveQuery: {
+      classNames: ['Posts', 'Comments'],
+    },
+    logLevel: 'info',
+    verbose: true,
+  });
 
-// ----- Starta HTTP-server + LiveQuery -----
-const httpServer = http.createServer(app);
-httpServer.listen(port, () => {
-  console.log(`🚀 Parse Server körs på http://localhost:${port}${mountPath}`);
+  await parseServer.start(); // 💥 Obligatoriskt i Parse Server 8+
+
+  app.use(mountPath, parseServer.app);
+
+  const httpServer = http.createServer(app);
+  httpServer.listen(port, () => {
+    console.log(`🚀 Parse Server körs på http://localhost:${port}${mountPath}`);
+  });
+
+  ParseServer.createLiveQueryServer(httpServer);
+}
+
+startServer().catch((err) => {
+  console.error('❌ Fel vid start av Parse Server:', err);
 });
-
-// ----- Starta LiveQuery Server -----
-ParseServer.createLiveQueryServer(httpServer);
 
 // ----- Global felhantering -----
 process.on('unhandledRejection', (reason, promise) => {
