@@ -1,3 +1,5 @@
+const Parse = require('parse/node');
+
 console.log('📦 main.cjs laddas...');
 
 // Enkel testfunktion
