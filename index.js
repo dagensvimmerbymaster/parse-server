@@ -6,23 +6,13 @@ const path = require('path');
 
 const { ParseServer } = parseServerPkg;
 
-console.log('✅ Initierar Parse Server med push-stöd...');
+console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
 
 const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 
-const databaseURI = process.env.MONGODB_URI;
-const appId = process.env.APP_ID;
-const masterKey = process.env.MASTER_KEY;
-const serverURL = process.env.SERVER_URL;
-const publicServerURL = process.env.PUBLIC_SERVER_URL;
-
-console.log('📦 APP_ID:', appId);
-console.log('📦 MASTER_KEY:', masterKey);
-console.log('🌍 SERVER_URL:', serverURL);
-
-app.enable('trust proxy'); // Heroku-proxy stöd
+app.enable('trust proxy');
 
 // ----- Kontrollera FCM -----
 let fcmServiceAccount;
@@ -65,10 +55,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// ----- serverInfo -----
+// ----- serverInfo endpoint -----
 app.get(`${mountPath}/serverInfo`, (req, res) => {
   return res.json({
-    parseServerVersion: ParseServer.version,
+    parseServerVersion: ParseServer.version || 'unknown',
     features: {
       globalConfig: true,
       hooks: true,
@@ -86,15 +76,19 @@ app.get(`${mountPath}/health`, (_, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// ----- Starta server (async för ParseServer v8+) -----
+// ----- Starta Parse Server (v8 kräver await start()) -----
 async function startServer() {
   const parseServer = new ParseServer({
-    databaseURI,
+    databaseURI: process.env.MONGODB_URI,
     cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
-    appId,
-    masterKey,
-    serverURL,
-    publicServerURL,
+    appId: process.env.APP_ID,
+    masterKey: process.env.MASTER_KEY,
+    serverURL: process.env.SERVER_URL,
+    publicServerURL: process.env.PUBLIC_SERVER_URL,
+    javascriptKey: process.env.JAVASCRIPT_KEY || '',
+    restAPIKey: process.env.REST_API_KEY || '',
+    dotNetKey: process.env.DOTNET_KEY || '',
+    clientKey: process.env.CLIENT_KEY || '',
     push,
     allowClientClassCreation: true,
     liveQuery: {
@@ -104,7 +98,7 @@ async function startServer() {
     verbose: true,
   });
 
-  await parseServer.start(); // 💥 Obligatoriskt i Parse Server 8+
+  await parseServer.start(); // 💥 Detta krävs i Parse Server v8+
 
   app.use(mountPath, parseServer.app);
 
