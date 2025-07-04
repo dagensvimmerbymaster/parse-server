@@ -35,7 +35,7 @@ const push = {
         teamId: '5S4Z656PBW',
       },
       topic: 'com.dagensvimmerbyab.DV',
-      production: false,
+      production: true,
     },
   ],
 };
