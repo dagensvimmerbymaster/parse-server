@@ -1,7 +1,4 @@
-SYNTAXERROR
-import Parse from 'parse/node';
-
-console.log('📦 main.js laddas...');
+console.log('📦 main.cjs laddas...');
 
 // Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
@@ -151,4 +148,3 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
   console.error('❌ Ohanterat undantag:', err);
 });
-export {};
