@@ -53,6 +53,10 @@ const parseServer = new ParseServer({
   masterKey: process.env.MASTER_KEY,
   serverURL: process.env.SERVER_URL,
   publicServerURL: process.env.PUBLIC_SERVER_URL,
+  javascriptKey: process.env.JAVASCRIPT_KEY || '',
+  restAPIKey: process.env.REST_API_KEY || '',
+  dotNetKey: process.env.DOTNET_KEY || '',
+  clientKey: process.env.CLIENT_KEY || '',
   push,
   allowClientClassCreation: true,
   liveQuery: {
