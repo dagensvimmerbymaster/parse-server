@@ -10,5 +10,8 @@
     "parse-server": "^8.2.1",
     "@parse/push-adapter": "^6.11.0",
     "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

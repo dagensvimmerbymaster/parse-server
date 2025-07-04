@@ -1,13 +1,11 @@
 const Parse = require('parse/node');
 
-console.log('📦 main.cjs laddas...');
+console.log('📦 main.js laddas...');
 
-// Enkel testfunktion
 Parse.Cloud.define("hello", async () => {
   return "Hello world!";
 });
 
-// ✅ beforeSave för _Installation – endast logg, inga ändringar
 Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
   try {
     console.log('📥 Incoming _Installation object:', JSON.stringify(req.object.toJSON(), null, 2));
@@ -22,7 +20,6 @@ Parse.Cloud.beforeSave(Parse.Installation, async (req) => {
   }
 });
 
-// ✅ Läs installation – ingen modifiering
 Parse.Cloud.define("GetInstallation", async (request) => {
   try {
     const { installationId } = request.params;
@@ -46,7 +43,6 @@ Parse.Cloud.define("GetInstallation", async (request) => {
   }
 });
 
-// ✅ Uppdatera eller skapa en installation
 Parse.Cloud.define("UpdateInstallation", async (request) => {
   try {
     const {
@@ -87,7 +83,6 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
     if (localeIdentifier) installation.set("localeIdentifier", localeIdentifier);
     if (appVersion) installation.set("appVersion", appVersion);
 
-    // Endast uppdatera deviceToken om nytt eller ändrat
     if (deviceToken && (isNew || installation.get("deviceToken") !== deviceToken)) {
       installation.set("deviceToken", deviceToken);
     }
@@ -113,7 +108,6 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   }
 });
 
-// ✅ Skicka push till alla installationer
 Parse.Cloud.define("sendPushToAll", async (request) => {
   try {
     const { message, title, url } = request.params;
@@ -143,7 +137,6 @@ Parse.Cloud.define("sendPushToAll", async (request) => {
   }
 });
 
-// 🛠️ Global fångst av oväntade fel
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Ohanterat löfte-fel:', reason);
 });

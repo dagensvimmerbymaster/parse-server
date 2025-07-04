@@ -1,15 +1,10 @@
-import express from 'express';
-import parseServerPkg from 'parse-server';
-import fs from 'fs';
-import { createServer } from 'http';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const parseServerPkg = require('parse-server');
+const fs = require('fs');
+const http = require('http');
+const path = require('path');
 
 const { ParseServer } = parseServerPkg;
-
-// ---- Lös ESM path-resolver (när __dirname saknas i ES-moduler) ----
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 console.log('✅ Initierar Parse Server med push-stöd enligt Parse standard...');
 console.log('🔢 Parse Server version:', parseServerPkg.version || '❌ Version saknas');
@@ -40,7 +35,7 @@ const push = {
   ios: [
     {
       token: {
-        key: fs.readFileSync(path.resolve(__dirname, './certificates/AuthKey_AT4486F4YN.p8')),
+        key: fs.readFileSync('./certificates/AuthKey_AT4486F4YN.p8'),
         keyId: 'AT4486F4YN',
         teamId: '5S4Z656PBW',
       },
@@ -53,7 +48,7 @@ const push = {
 // ----- Skapa ParseServer-instans -----
 const parseServer = new ParseServer({
   databaseURI: process.env.MONGODB_URI,
-  cloud: path.resolve(__dirname, './cloud/main.cjs'), // 👈 CommonJS cloud-kod
+  cloud: path.resolve('./cloud/main.js'),
   appId: process.env.APP_ID,
   masterKey: process.env.MASTER_KEY,
   serverURL: process.env.SERVER_URL,
@@ -105,7 +100,7 @@ app.get(`${mountPath}/health`, (_, res) => {
 app.use(mountPath, parseServer.app);
 
 // ----- Starta HTTP-server + LiveQuery -----
-const httpServer = createServer(app);
+const httpServer = http.createServer(app);
 httpServer.listen(port, () => {
   console.log(`🚀 Parse Server körs på http://localhost:${port}${mountPath}`);
 });
