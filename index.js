@@ -80,7 +80,7 @@ app.get(`${mountPath}/health`, (_, res) => {
 async function startServer() {
   const parseServer = new ParseServer({
     databaseURI: process.env.MONGODB_URI,
-    cloud: process.env.CLOUD_CODE_MAIN || path.join(__dirname, 'cloud/main.js'),
+    cloud: process.env.CLOUD_CODE_MAIN || path.resolve(__dirname, 'cloud/main.js'),
     appId: process.env.APP_ID,
     masterKey: process.env.MASTER_KEY,
     serverURL: process.env.SERVER_URL,
