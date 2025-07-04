@@ -26,11 +26,7 @@ try {
 
 // ----- Push-inställningar -----
 const push = {
-//  android: {
-  //  senderId: process.env.FCM_SENDER_ID,
-    //serviceAccount: fcmServiceAccount,
-    //type: 'fcm',
-  //},
+  // Android push är tillfälligt inaktiverat
   ios: [
     {
       token: {
@@ -76,7 +72,7 @@ app.get(`${mountPath}/health`, (_, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// ----- Starta Parse Server (v8 kräver await start()) -----
+// ----- Starta Parse Server -----
 async function startServer() {
   const parseServer = new ParseServer({
     databaseURI: process.env.MONGODB_URI,
@@ -90,6 +86,7 @@ async function startServer() {
     dotNetKey: process.env.DOTNET_KEY || '',
     clientKey: process.env.CLIENT_KEY || '',
     push,
+    masterKeyIps: ['0.0.0.0/0', '::/0'], // 💥 Tillåter alla IP-adresser
     allowClientClassCreation: true,
     liveQuery: {
       classNames: ['Posts', 'Comments'],
@@ -98,7 +95,7 @@ async function startServer() {
     verbose: true,
   });
 
-  await parseServer.start(); // 💥 Detta krävs i Parse Server v8+
+  await parseServer.start();
 
   app.use(mountPath, parseServer.app);
 
