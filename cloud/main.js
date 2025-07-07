@@ -113,32 +113,66 @@ module.exports = () => {
     }
   });
 
-  // ✅ Skicka push till alla installationer
+  // ✅ Skicka push till alla installationer i batchar
   Parse.Cloud.define("sendPushToAll", async (request) => {
     try {
-      const { message, title, url } = request.params;
-
       if (!request.master) throw new Error("⛔ MasterKey krävs.");
+      const { message, title, url } = request.params;
       if (!message) throw new Error("⛔ 'message' krävs.");
 
+      const BATCH_SIZE = 50;
+
       const query = new Parse.Query("_Installation");
+      query.equalTo("deviceType", "ios");
+      query.equalTo("pushType", "apn");
       query.exists("deviceToken");
-      query.exists("pushType");
 
-      await Parse.Push.send({
-        where: query,
-        data: {
-          alert: message,
-          title: title || "Meddelande",
-          badge: "Increment",
-          sound: "default",
-          url: url || null,
-        },
-      }, { useMasterKey: true });
+      const allInstallations = await query.find({ useMasterKey: true });
+      console.log(`📦 Totalt ${allInstallations.length} enheter hittade.`);
 
-      return { success: true };
+      const batches = [];
+      for (let i = 0; i < allInstallations.length; i += BATCH_SIZE) {
+        batches.push(allInstallations.slice(i, i + BATCH_SIZE));
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const batch of batches) {
+        const tokenList = batch.map(inst => inst.get("deviceToken"));
+        const batchQuery = new Parse.Query("_Installation");
+        batchQuery.containedIn("deviceToken", tokenList);
+
+        try {
+          await Parse.Push.send({
+            where: batchQuery,
+            data: {
+              alert: message,
+              title: title || "Meddelande",
+              badge: "Increment",
+              sound: "default",
+              url: url || null,
+            },
+          }, { useMasterKey: true });
+
+          successCount += tokenList.length;
+          console.log(`✅ Push skickad till ${tokenList.length} enheter.`);
+        } catch (err) {
+          failCount += tokenList.length;
+          console.error("❌ Push-fel:", err);
+        }
+
+        await new Promise(res => setTimeout(res, 500)); // throttling
+      }
+
+      return {
+        success: true,
+        sent: successCount,
+        failed: failCount,
+      };
+
     } catch (err) {
-      console.error("❌ Fel i sendPushToAll:", err);
+      console.error("🔥 Push-error:", err);
       throw err;
     }
   });
