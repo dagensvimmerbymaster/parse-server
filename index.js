@@ -40,7 +40,7 @@ const api = new ParseServer({
 });
 
 // 🔌 Middleware
-app.use(mountPath, api);
+app.use(mountPath, api.app);
 
 // 🔁 Health check
 app.get(`${mountPath}/health`, (_, res) => {
