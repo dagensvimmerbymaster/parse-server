@@ -7,11 +7,10 @@ const app = express();
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 
-// 📦 Bekräfta cloud-filen
 const cloudCodePath = path.resolve(__dirname, 'cloud/main.js');
 console.log("🧠 Cloud code path:", cloudCodePath);
 
-// ✅ Push-config (endast iOS just nu)
+// Push config
 const pushConfig = {
   ios: [{
     token: {
@@ -27,7 +26,7 @@ const pushConfig = {
   }]
 };
 
-// ✅ Initiera Parse Server
+// Init Parse Server
 const api = new ParseServer({
   databaseURI: process.env.MONGODB_URI,
   cloud: cloudCodePath,
@@ -41,13 +40,13 @@ const api = new ParseServer({
   masterKeyIps: ['0.0.0.0/0', '::/0'],
 });
 
-// 🔌 Mount Parse API
-app.use(mountPath, api.app);
+// ✅ Viktigt: denna rad var korrekt tidigare
+app.use(mountPath, api);
 
-// 🔁 Health-check endpoint
+// Healthcheck
 app.get(`${mountPath}/health`, (_, res) => res.status(200).send('OK'));
 
-// 🚀 Starta server
+// Starta server
 app.listen(port, () => {
   console.log(`🚀 Parse Server kör på http://localhost:${port}${mountPath}`);
 });
