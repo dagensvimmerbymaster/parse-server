@@ -2,59 +2,52 @@ const express = require('express');
 const { ParseServer } = require('parse-server');
 const path = require('path');
 const fs = require('fs');
-const http = require('http');
 
 const app = express();
-
 const port = process.env.PORT || 1337;
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 
-const push = {
-  ios: [
-    {
-      token: {
-        key: fs.readFileSync(path.resolve(__dirname, './certificates/AuthKey_AT4486F4YN.p8')),
-        keyId: 'AT4486F4YN',
-        teamId: '5S4Z656PBW'
-      },
-      topic: 'com.dagensvimmerbyab.DV',
-      production: true,
-      connectionTimeout: 30000,
-      maxConnections: 1,
-      keepAlive: true
-    }
-  ]
+// 📦 Bekräfta cloud-filen
+const cloudCodePath = path.resolve(__dirname, 'cloud/main.js');
+console.log("🧠 Cloud code path:", cloudCodePath);
+
+// ✅ Push-config (endast iOS just nu)
+const pushConfig = {
+  ios: [{
+    token: {
+      key: fs.readFileSync(path.resolve(__dirname, 'certificates/AuthKey_AT4486F4YN.p8')),
+      keyId: 'AT4486F4YN',
+      teamId: '5S4Z656PBW'
+    },
+    topic: 'com.dagensvimmerbyab.DV',
+    production: true,
+    connectionTimeout: 30000,
+    maxConnections: 1,
+    keepAlive: true
+  }]
 };
 
-const parseServer = new ParseServer({
+// ✅ Initiera Parse Server
+const api = new ParseServer({
   databaseURI: process.env.MONGODB_URI,
-  cloud: path.resolve(__dirname, './cloud/main.js'),
+  cloud: cloudCodePath,
   appId: process.env.APP_ID,
   masterKey: process.env.MASTER_KEY,
   serverURL: process.env.SERVER_URL,
   publicServerURL: process.env.PUBLIC_SERVER_URL,
-  push: push,
+  push: pushConfig,
   allowClientClassCreation: true,
-  logLevel: 'info',
+  logLevel: 'debug',
   masterKeyIps: ['0.0.0.0/0', '::/0'],
-  liveQuery: {
-    classNames: ['Posts', 'Comments'],
-  }
 });
 
-app.use(mountPath, parseServer.app);
+// 🔌 Mount Parse API
+app.use(mountPath, api.app);
 
-app.get('/', (req, res) => {
-  res.status(200).send('🚀 Parse Server kör och svarar.');
-});
+// 🔁 Health-check endpoint
+app.get(`${mountPath}/health`, (_, res) => res.status(200).send('OK'));
 
-app.get(`${mountPath}/health`, (_, res) => {
-  res.status(200).send('OK');
-});
-
-const httpServer = http.createServer(app);
-httpServer.listen(port, () => {
+// 🚀 Starta server
+app.listen(port, () => {
   console.log(`🚀 Parse Server kör på http://localhost:${port}${mountPath}`);
 });
-
-ParseServer.createLiveQueryServer(httpServer);
