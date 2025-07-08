@@ -100,6 +100,13 @@ async function startServer() {
 
   await parseServer.start();
 
+  // ✅ Kontrollera push-adapter efter start
+  if (parseServer && parseServer._pushController && parseServer._pushController.adapter) {
+    console.log('✅ Push-adapter är laddad:', parseServer._pushController.adapter.constructor.name);
+  } else {
+    console.error('❌ Push-adapter inte tillgänglig – push kommer INTE fungera');
+  }
+
   app.use(mountPath, parseServer.app);
 
   const httpServer = http.createServer(app);
