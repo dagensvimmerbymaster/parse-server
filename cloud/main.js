@@ -101,6 +101,12 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
       installation.set("channels", channels);
     }
 
+    // ✅ Lägg till korrekt ACL (public read/write)
+    const acl = new Parse.ACL();
+    acl.setPublicReadAccess(true);
+    acl.setPublicWriteAccess(true);
+    installation.setACL(acl);
+
     await installation.save(null, { useMasterKey: true });
     return { success: true };
 
