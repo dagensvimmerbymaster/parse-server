@@ -24,13 +24,29 @@ try {
   process.exit(1);
 }
 
+// ----- Kontrollera att APNS-filen finns -----
+const apnsKeyPath = path.resolve(__dirname, './certificates/AuthKey_AT4486F4YN.p8');
+if (!fs.existsSync(apnsKeyPath)) {
+  console.error('❌ Hittar inte APNS .p8-filen på:', apnsKeyPath);
+  process.exit(1);
+}
+console.log('✅ APNS .p8 hittades:', apnsKeyPath);
+
+// ----- (Tillfällig) loggning av .p8-innehåll -----
+try {
+  const apnsKeyContent = fs.readFileSync(apnsKeyPath, 'utf8');
+  console.log('🧾 .p8-filen laddades, första 200 tecken:\n', apnsKeyContent.substring(0, 200));
+} catch (e) {
+  console.error('❌ Kunde inte läsa .p8-filen:', e);
+  process.exit(1);
+}
+
 // ----- Push-inställningar -----
 const push = {
-  // Android push är tillfälligt inaktiverat
   ios: [
     {
       token: {
-        key: fs.readFileSync('./certificates/AuthKey_AT4486F4YN.p8'),
+        key: fs.readFileSync(apnsKeyPath, 'utf8'), // ⬅ viktigt att läsa som sträng
         keyId: 'AT4486F4YN',
         teamId: '5S4Z656PBW',
       },
@@ -89,7 +105,7 @@ async function startServer() {
     dotNetKey: process.env.DOTNET_KEY || '',
     clientKey: process.env.CLIENT_KEY || '',
     push,
-    masterKeyIps: ['0.0.0.0/0', '::/0'], // 💥 Tillåter alla IP-adresser
+    masterKeyIps: ['0.0.0.0/0', '::/0'],
     allowClientClassCreation: true,
     liveQuery: {
       classNames: ['Posts', 'Comments'],
@@ -99,13 +115,6 @@ async function startServer() {
   });
 
   await parseServer.start();
-
-  // ✅ Kontrollera push-adapter efter start
-  if (parseServer && parseServer._pushController && parseServer._pushController.adapter) {
-    console.log('✅ Push-adapter är laddad:', parseServer._pushController.adapter.constructor.name);
-  } else {
-    console.error('❌ Push-adapter inte tillgänglig – push kommer INTE fungera');
-  }
 
   app.use(mountPath, parseServer.app);
 
