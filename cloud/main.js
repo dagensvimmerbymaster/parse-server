@@ -180,6 +180,25 @@ Parse.Cloud.define("sendPushToAll", async (request) => {
   }
 });
 
+// ✅ Rensa hängande pushar
+Parse.Cloud.define("cleanupPushStatus", async () => {
+  const query = new Parse.Query("_PushStatus");
+  query.equalTo("status", "sending");
+
+  const stuckPushes = await query.find({ useMasterKey: true });
+
+  let count = 0;
+  for (const push of stuckPushes) {
+    await push.destroy({ useMasterKey: true });
+    count++;
+  }
+
+  return {
+    removed: count,
+    message: `${count} hängande pushar raderade`
+  };
+});
+
 // 🛠️ Global fångst av oväntade fel
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Ohanterat löfte-fel:', reason);
