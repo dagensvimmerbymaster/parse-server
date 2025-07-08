@@ -52,9 +52,10 @@ const push = {
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 2,
+      maxConnections: 5,
       connectionRetryLimit: 3,
       connectionTimeout: 60000,
+      keepAlive: true,
     },
   ],
 };
