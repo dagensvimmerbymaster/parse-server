@@ -119,6 +119,7 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
 // ✅ Skicka push till alla installationer i batchar
 Parse.Cloud.define("sendPushToAll", async (request) => {
   try {
+    console.log("🚀 sendPushToAll startar...");
     if (!request.master) throw new Error("⛔ MasterKey krävs.");
     const { message, title, url } = request.params;
     if (!message) throw new Error("⛔ 'message' krävs.");
@@ -140,6 +141,7 @@ Parse.Cloud.define("sendPushToAll", async (request) => {
 
     let successCount = 0;
     let failCount = 0;
+    let failedTokens = [];
 
     for (const batch of batches) {
       const tokenList = batch.map(inst => inst.get("deviceToken"));
@@ -162,20 +164,28 @@ Parse.Cloud.define("sendPushToAll", async (request) => {
         console.log(`✅ Push skickad till ${tokenList.length} enheter.`);
       } catch (err) {
         failCount += tokenList.length;
-        console.error("❌ Push-fel:", err);
+        failedTokens.push(...tokenList);
+        console.error("❌ Push-fel:", err && err.stack ? err.stack : err);
+        console.error("❌ Misslyckade deviceTokens:", tokenList);
       }
 
       await new Promise(res => setTimeout(res, 500)); // throttling
+    }
+
+    console.log("🏁 sendPushToAll avslutad. Lyckade:", successCount, "Misslyckade:", failCount);
+    if (failedTokens.length > 0) {
+      console.log("❗ Totalt misslyckade deviceTokens:", failedTokens);
     }
 
     return {
       success: true,
       sent: successCount,
       failed: failCount,
+      failedTokens,
     };
 
   } catch (err) {
-    console.error("🔥 Push-error:", err);
+    console.error("🔥 Push-error:", err && err.stack ? err.stack : err);
     throw err;
   }
 });

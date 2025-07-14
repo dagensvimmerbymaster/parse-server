@@ -52,13 +52,15 @@ const push = {
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 5,
+      maxConnections: 1, // Sänkt från 5 till 1 för stabilare anslutning
       connectionRetryLimit: 3,
       connectionTimeout: 60000,
       keepAlive: true,
     },
   ],
 };
+
+console.log('✅ APNS push-adapter initieras med maxConnections = 1');
 
 // ----- Middleware: CORS -----
 app.use((req, res, next) => {
