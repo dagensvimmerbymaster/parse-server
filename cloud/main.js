@@ -116,76 +116,28 @@ Parse.Cloud.define("UpdateInstallation", async (request) => {
   }
 });
 
-// ✅ Skicka push till alla installationer i batchar
+// Ny version: Lägg push-jobb i kö (PushJobs)
 Parse.Cloud.define("sendPushToAll", async (request) => {
   try {
-    console.log("🚀 sendPushToAll startar...");
+    console.log("🚀 sendPushToAll (queue mode) startar...");
     if (!request.master) throw new Error("⛔ MasterKey krävs.");
     const { message, title, url } = request.params;
     if (!message) throw new Error("⛔ 'message' krävs.");
 
-    const BATCH_SIZE = 50;
+    // Skapa push-jobb i ny klass/kollektion
+    const PushJob = Parse.Object.extend("PushJobs");
+    const job = new PushJob();
+    job.set("message", message);
+    job.set("title", title || "Meddelande");
+    job.set("url", url || null);
+    job.set("status", "pending");
+    job.set("createdAt", new Date());
+    await job.save(null, { useMasterKey: true });
 
-    const query = new Parse.Query("_Installation");
-    query.equalTo("deviceType", "ios");
-    query.equalTo("pushType", "apn");
-    query.exists("deviceToken");
-
-    const allInstallations = await query.find({ useMasterKey: true });
-    console.log(`📦 Totalt ${allInstallations.length} enheter hittade.`);
-
-    const batches = [];
-    for (let i = 0; i < allInstallations.length; i += BATCH_SIZE) {
-      batches.push(allInstallations.slice(i, i + BATCH_SIZE));
-    }
-
-    let successCount = 0;
-    let failCount = 0;
-    let failedTokens = [];
-
-    for (const batch of batches) {
-      const tokenList = batch.map(inst => inst.get("deviceToken"));
-      const batchQuery = new Parse.Query("_Installation");
-      batchQuery.containedIn("deviceToken", tokenList);
-
-      try {
-        await Parse.Push.send({
-          where: batchQuery,
-          data: {
-            alert: message,
-            title: title || "Meddelande",
-            badge: "Increment",
-            sound: "default",
-            url: url || null,
-          },
-        }, { useMasterKey: true });
-
-        successCount += tokenList.length;
-        console.log(`✅ Push skickad till ${tokenList.length} enheter.`);
-      } catch (err) {
-        failCount += tokenList.length;
-        failedTokens.push(...tokenList);
-        console.error("❌ Push-fel:", err && err.stack ? err.stack : err);
-        console.error("❌ Misslyckade deviceTokens:", tokenList);
-      }
-
-      await new Promise(res => setTimeout(res, 500)); // throttling
-    }
-
-    console.log("🏁 sendPushToAll avslutad. Lyckade:", successCount, "Misslyckade:", failCount);
-    if (failedTokens.length > 0) {
-      console.log("❗ Totalt misslyckade deviceTokens:", failedTokens);
-    }
-
-    return {
-      success: true,
-      sent: successCount,
-      failed: failCount,
-      failedTokens,
-    };
-
+    console.log("✅ Push-jobb skapat med id:", job.id);
+    return { success: true, jobId: job.id };
   } catch (err) {
-    console.error("🔥 Push-error:", err && err.stack ? err.stack : err);
+    console.error("🔥 sendPushToAll error:", err && err.stack ? err.stack : err);
     throw err;
   }
 });
