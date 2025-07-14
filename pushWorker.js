@@ -50,15 +50,19 @@ async function processJobs() {
           let sent = false;
           while (!sent && retry < 3) {
             try {
+              // Bygg push-data
+              const pushData = {
+                alert: message,
+                title: title || 'Meddelande',
+                badge: 'Increment',
+                sound: 'default',
+              };
+              if (url && typeof url === 'string' && url.trim().length > 0) {
+                pushData.custom = { url };
+              }
               await Parse.Push.send({
                 where: batchQuery,
-                data: {
-                  alert: message,
-                  title: title || 'Meddelande',
-                  badge: 'Increment',
-                  sound: 'default',
-                  url: url || null,
-                },
+                data: pushData,
               }, { useMasterKey: true });
               successCount += tokenList.length;
               sent = true;
