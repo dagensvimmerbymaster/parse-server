@@ -120,7 +120,7 @@ async function startServer() {
 
   // await parseServer.start();
 
-  app.use(mountPath, parseServer.app);
+  app.use(mountPath, parseServer);
 
   const httpServer = http.createServer(app);
   httpServer.listen(port, () => {
