@@ -110,7 +110,6 @@ async function startServer() {
     dotNetKey: process.env.DOTNET_KEY || '',
     clientKey: process.env.CLIENT_KEY || '',
     push,
-    masterKeyIps: ['0.0.0.0/0', '::/0'],
     allowClientClassCreation: true,
     liveQuery: {
       classNames: ['Posts', 'Comments'],
