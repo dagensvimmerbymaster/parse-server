@@ -46,16 +46,18 @@ const push = {
   ios: [
     {
       token: {
-        key: fs.readFileSync(apnsKeyPath, 'utf8'), // ⬅ viktigt att läsa som sträng
+        key: fs.readFileSync(apnsKeyPath, 'utf8'),
         keyId: 'AT4486F4YN',
         teamId: '5S4Z656PBW',
       },
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
-      maxConnections: 1, // Sänkt från 5 till 1 för stabilare anslutning
-      connectionRetryLimit: 3,
-      connectionTimeout: 60000,
+      maxConnections: 1,
+      connectionRetryLimit: 10,
+      connectionTimeout: 120000,
       keepAlive: true,
+      batchSize: 5,    // Om din version av parse-server stödjer detta
+      batchWait: 5000, // Om din version av parse-server stödjer detta
     },
   ],
 };
