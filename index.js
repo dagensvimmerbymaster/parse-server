@@ -118,7 +118,7 @@ async function startServer() {
     verbose: true,
   });
 
-  await parseServer.start();
+  // await parseServer.start();
 
   app.use(mountPath, parseServer.app);
 
