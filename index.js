@@ -33,13 +33,6 @@ if (!fs.existsSync(apnsKeyPath)) {
 console.log('✅ APNS .p8 hittades:', apnsKeyPath);
 
 // ----- (Tillfällig) loggning av .p8-innehåll -----
-try {
-  const apnsKeyContent = fs.readFileSync(apnsKeyPath, 'utf8');
-  console.log('🧾 .p8-filen laddades, första 200 tecken:\n', apnsKeyContent.substring(0, 200));
-} catch (e) {
-  console.error('❌ Kunde inte läsa .p8-filen:', e);
-  process.exit(1);
-}
 
 // ----- Push-inställningar -----
 const push = {
@@ -53,11 +46,11 @@ const push = {
       topic: 'com.dagensvimmerbyab.DV',
       production: true,
       maxConnections: 1,
-      connectionRetryLimit: 10,
+      connectionRetryLimit: 20,
       connectionTimeout: 120000,
-      keepAlive: true,
-      batchSize: 5,    // Om din version av parse-server stödjer detta
-      batchWait: 5000, // Om din version av parse-server stödjer detta
+      keepAlive: false,
+      batchSize: 1,    // Throttle för stabilitet på Heroku
+      batchWait: 6000, // Paus mellan små batchar
     },
   ],
 };
@@ -124,6 +117,9 @@ async function startServer() {
   app.use(mountPath, parseServer);
 
   const httpServer = http.createServer(app);
+  // Sätt HTTP timeouts för att minska hängande anslutningar / H19-problem
+  httpServer.keepAliveTimeout = 65000;
+  httpServer.headersTimeout = 66000;
   httpServer.listen(port, () => {
     console.log(`🚀 Parse Server körs på http://localhost:${port}${mountPath}`);
   });
