@@ -116,6 +116,53 @@ async function startServer() {
 
   app.use(mountPath, parseServer);
 
+  // Lägg till cron-job för att bearbeta schemalagda pushar
+  // Parse Server 4.10.7 behöver detta för scheduledPush
+  const cron = require('node-cron');
+  
+  // Kör varje minut för att bearbeta schemalagda pushar
+  cron.schedule('* * * * *', async () => {
+    try {
+      console.log('⏰ Kontrollerar schemalagda pushar...');
+      // Hämta alla schemalagda pushar som ska skickas nu
+      const query = new Parse.Query('_PushStatus');
+      query.equalTo('pushType', 'scheduled');
+      query.lessThanOrEqualTo('pushTime', new Date());
+      query.equalTo('status', 'pending');
+      
+      const scheduledPushes = await query.find({ useMasterKey: true });
+      
+      if (scheduledPushes.length > 0) {
+        console.log(`📤 Hittade ${scheduledPushes.length} schemalagda pushar att skicka`);
+        
+        for (const pushStatus of scheduledPushes) {
+          try {
+            // Skicka pushen
+            await Parse.Push.send({
+              where: pushStatus.get('where'),
+              data: pushStatus.get('pushData'),
+              pushTime: pushStatus.get('pushTime')
+            }, { useMasterKey: true });
+            
+            // Uppdatera status
+            pushStatus.set('status', 'sent');
+            pushStatus.set('sentAt', new Date());
+            await pushStatus.save(null, { useMasterKey: true });
+            
+            console.log(`✅ Schemalagd push skickad: ${pushStatus.id}`);
+          } catch (pushErr) {
+            console.error(`❌ Fel vid skickande av schemalagd push ${pushStatus.id}:`, pushErr);
+            pushStatus.set('status', 'failed');
+            pushStatus.set('error', pushErr.message);
+            await pushStatus.save(null, { useMasterKey: true });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Fel vid bearbetning av schemalagda pushar:', err);
+    }
+  });
+
   const httpServer = http.createServer(app);
   // Sätt HTTP timeouts för att minska hängande anslutningar / H19-problem
   httpServer.keepAliveTimeout = 65000;
