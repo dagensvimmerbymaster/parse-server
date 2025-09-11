@@ -48,7 +48,7 @@ const push = {
       connectionTimeout: 120000,
       keepAlive: false,
       batchSize: 1,    // Throttle för stabilitet på Heroku
-      batchWait: 6000, // Paus mellan små batchar
+      batchWait: 10000, // Ökad paus mellan batchar för stabilitet
     },
   ],
 };
